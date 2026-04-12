@@ -37,6 +37,16 @@ impl Vec3 {
             b: (normalized.z * 255.0) as u8
         }
     }
+    fn dot(&self, v: Vec3) -> f32 {
+        self.x * v.x + self.y * v.y + self.z * v.z
+    }
+    fn cross(&self, v: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.y * v.z - self.z * v.y,
+            y: -(self.x * v.z - self.z * v.x),
+            z: self.x * v.y - self.y * v.x
+        }
+    }
 }
 
 impl fmt::Display for Vec3 {
@@ -82,6 +92,14 @@ impl ops::Mul<f32> for Vec3 {
 
     fn mul(self, rhs: f32) -> Self::Output {
         Self { x: self.x * rhs, y: self.y * rhs, z: self.z * rhs }
+    }
+}
+
+impl ops::Mul<Vec3> for f32 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Self::Output {
+        Vec3 { x: rhs.x * self, y: rhs.y * self, z: rhs.z * self }
     }
 }
 
