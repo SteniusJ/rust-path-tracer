@@ -1,10 +1,10 @@
 use crate::{ray, vec3};
 
 pub struct HitRecord {
-    t: f32,
-    p: vec3::Vec3,
-    surface_normal: vec3::Vec3,
-    //material: &Material
+    pub t: f32,
+    pub p: vec3::Vec3,
+    pub surface_normal: vec3::Vec3,
+    //pub material: &Material
 }
 
 pub trait Hittable {

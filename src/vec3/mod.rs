@@ -3,9 +3,9 @@ use std::fmt;
 
 #[derive(Clone, Copy)]
 pub struct Vec3 {
-    x: f32,
-    y: f32,
-    z: f32
+    pub x: f32,
+    pub y: f32,
+    pub z: f32
 }
 
 impl Vec3 {
@@ -15,21 +15,21 @@ impl Vec3 {
     pub fn empty() -> Vec3 {
         Vec3 { x: 0.0, y: 0.0, z: 0.0 }
     }
-    fn len(&self) -> f32 {
+    pub fn len(&self) -> f32 {
         f32::sqrt(self.x * self.x + self.y * self.y + self.z + self.z)
     }
-    fn sqrt_len(&self) -> f32 {
+    pub fn sqrt_len(&self) -> f32 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
-    fn to_normalized(&self) -> Vec3 {
+    pub fn to_normalized(&self) -> Vec3 {
         let k: f32 = 1.0 / self.len();
         *self * k
     }
-    fn into_normalized(&mut self) {
+    pub fn into_normalized(&mut self) {
         let k: f32 = 1.0 / self.len();
         *self *= k;
     }
-    fn to_color(&self) -> Color {
+    pub fn to_color(&self) -> Color {
         let normalized = self.to_normalized();
         Color {
             r: (normalized.x * 255.0) as u8,
@@ -37,10 +37,10 @@ impl Vec3 {
             b: (normalized.z * 255.0) as u8
         }
     }
-    fn dot(&self, v: Vec3) -> f32 {
+    pub fn dot(&self, v: Vec3) -> f32 {
         self.x * v.x + self.y * v.y + self.z * v.z
     }
-    fn cross(&self, v: Vec3) -> Vec3 {
+    pub fn cross(&self, v: Vec3) -> Vec3 {
         Vec3 {
             x: self.y * v.z - self.z * v.y,
             y: -(self.x * v.z - self.z * v.x),
@@ -63,6 +63,18 @@ impl ops::Neg for Vec3 {
             x: -self.x,
             y: -self.y,
             z: -self.z
+        }
+    }
+}
+
+impl ops::Sub for Vec3 {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z
         }
     }
 }
@@ -112,9 +124,9 @@ impl ops::MulAssign<f32> for Vec3 {
 }
 
 pub struct Color {
-    r: u8,
-    g: u8,
-    b: u8
+    pub r: u8,
+    pub g: u8,
+    pub b: u8
 }
 
 impl Color {
