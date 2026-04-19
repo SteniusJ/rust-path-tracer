@@ -29,15 +29,47 @@ impl<'a, T> Triangle<'a, T> where T: materials::Material {
             vertice1: v1,
             vertice2: v2,
             vertice3: v3,
-            normal: (v2 - v1).cross(v3 - v1).to_normalized(),
+            normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
             material
         }
     }
 }
 
-impl<'a, T> hittable::Hittable for Triangle<'a, T> where T: materials::Material {
-    fn hit(ray: &ray::Ray, t_min: f32, t_max: f32, rec: &mut hittable::HitRecord) {
-        // Implement triangle hit functions here
+impl<'a, T> hittable::Hittable<'a, T> for Triangle<'a, T> where T: materials::Material {
+    fn hit(&self, ray: &ray::Ray, t_min: f32, t_max: f32, rec: &mut hittable::HitRecord<'a, T>) -> bool {
+        let r_dir = ray.direction.to_normalized();
+
+        if self.normal.dot(&r_dir) == 0.0 {
+            return false;
+        }
+
+        let t = self.normal.dot(&(self.vertice1 - ray.origin)) / self.normal.dot(&r_dir);
+
+        // Triangle behind camera
+        if t <= 0.0 {
+            return false;
+        }
+
+        let int_point = ray.origin + ray.direction * t;
+
+        let edge_1_2 = self.vertice1 - self.vertice2;
+        let edge_1_3 = self.vertice1 - self.vertice3;
+        let edge_int = self.vertice1 - int_point;
+
+        let denominator = (edge_1_2.dot(&edge_1_2) * edge_1_3.dot(&edge_1_3)) - (edge_1_2.dot(&edge_1_3) * edge_1_2.dot(&edge_1_3));
+        let u = ((edge_1_2.dot(&edge_int) * edge_1_3.dot(&edge_1_3)) - (edge_1_2.dot(&edge_1_3) * edge_1_3.dot(&edge_int))) / denominator;
+        let v = ((edge_1_2.dot(&edge_1_2) * edge_1_3.dot(&edge_int)) * (edge_1_2.dot(&edge_1_3) * edge_1_2.dot(&edge_int))) / denominator;
+
+        if u >= 0.0 && v >= 0.0 && u + v <= 1.0 {
+            rec.surface_normal = self.normal;
+            rec.p = int_point;
+            rec.t = (ray.origin - int_point).len();
+            rec.material = self.material;
+
+            return true;
+        }
+        
+        false
     }
 }
 

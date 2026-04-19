@@ -1,8 +1,8 @@
 use crate::vec3;
 
 pub struct Ray {
-    origin: vec3::Vec3,
-    direction: vec3::Vec3
+    pub origin: vec3::Vec3,
+    pub direction: vec3::Vec3
 }
 
 impl Ray {
@@ -15,7 +15,7 @@ impl Ray {
             direction: vec3::Vec3::empty()
         }
     }
-    fn point_at_param(&self, t: f32) -> vec3::Vec3 {
+    pub fn point_at_param(&self, t: f64) -> vec3::Vec3 {
         self.origin + t * self.direction
     }
 }
