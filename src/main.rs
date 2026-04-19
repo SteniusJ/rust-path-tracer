@@ -1,5 +1,5 @@
-use rust_raytracer;
+use path_tracer;
 
 fn main() {
-    rust_raytracer::main();
+    path_tracer::main();
 }
