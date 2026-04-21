@@ -1,14 +1,14 @@
 use crate::{vec3, materials, hittable, ray};
 
-pub struct Triangle<'a, T: materials::Material> {
+pub struct Triangle<'a> {
     pub vertice1: vec3::Vec3,
     pub vertice2: vec3::Vec3,
     pub vertice3: vec3::Vec3,
     pub normal: vec3::Vec3,
-    pub material: &'a T,
+    pub material: &'a dyn materials::Material,
 }
 
-impl<'a, T> Triangle<'a, T> where T: materials::Material {
+impl<'a> Triangle<'a> {
     /*
      * Constructs a Triangle
      *
@@ -24,7 +24,7 @@ impl<'a, T> Triangle<'a, T> where T: materials::Material {
      * 1/___________\2
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: &'a T) -> Triangle<'a, T> {
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: &'a dyn materials::Material) -> Triangle<'a> {
         Triangle {
             vertice1: v1,
             vertice2: v2,
@@ -35,8 +35,8 @@ impl<'a, T> Triangle<'a, T> where T: materials::Material {
     }
 }
 
-impl<'a, T> hittable::Hittable<'a, T> for Triangle<'a, T> where T: materials::Material {
-    fn hit(&self, ray: &ray::Ray, t_min: f32, t_max: f32, rec: &mut hittable::HitRecord<'a, T>) -> bool {
+impl<'a> hittable::Hittable<'a> for Triangle<'a> {
+    fn hit(&self, ray: &ray::Ray, _t_min: f64, _t_max: f64, rec: &mut hittable::HitRecord<'a>) -> bool {
         let r_dir = ray.direction.to_normalized();
 
         if self.normal.dot(&r_dir) == 0.0 {
@@ -73,11 +73,11 @@ impl<'a, T> hittable::Hittable<'a, T> for Triangle<'a, T> where T: materials::Ma
     }
 }
 
-pub struct Cuboid<'a, T: materials::Material> {
-    pub triangles: *mut Triangle<'a, T>,
+pub struct Cuboid<'a> {
+    pub triangles: *mut Triangle<'a>,
 }
 
-impl<'a, T> Cuboid<'a, T> where T: materials::Material {
+impl<'a> Cuboid<'a> {
     /* Constructs new Cuboid
      * Returns vector of Triangle
      *
@@ -92,8 +92,8 @@ impl<'a, T> Cuboid<'a, T> where T: materials::Material {
      * 1/_______2/
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'a T) -> (Cuboid<'a, T>, Vec<Triangle<'a, T>>) {
-        let mut triangles: Vec<Triangle<'a, T>> = Vec::with_capacity(12);
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'a dyn materials::Material) -> (Cuboid<'a>, Vec<Triangle<'a>>) {
+        let mut triangles: Vec<Triangle<'a>> = Vec::with_capacity(12);
         triangles.push(Triangle::new(v1, v2, v3, material));
         triangles.push(Triangle::new(v3, v2, v4, material));
         triangles.push(Triangle::new(v1, v3, v5, material));

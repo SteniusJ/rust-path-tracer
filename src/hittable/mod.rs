@@ -1,12 +1,24 @@
 use crate::{ray, vec3, materials};
 
-pub struct HitRecord<'a, T: materials::Material> {
+#[derive(Clone, Copy)]
+pub struct HitRecord<'a> {
     pub t: f64,
     pub p: vec3::Vec3,
     pub surface_normal: vec3::Vec3,
-    pub material: &'a T,
+    pub material: &'a dyn materials::Material,
 }
 
-pub trait Hittable<'a, T> where T: materials::Material {
-    fn hit(&self, ray: &ray::Ray, t_min: f32, t_max: f32, rec: &mut HitRecord<'a, T>) -> bool;
+impl<'a> HitRecord<'a> {
+    pub fn empty(material: &'a dyn materials::Material) -> Self {
+        Self {
+            t: f64::MIN,
+            p: vec3::Vec3::empty(),
+            surface_normal: vec3::Vec3::empty(),
+            material,
+        }
+    }
+}
+
+pub trait Hittable<'a> {
+    fn hit(&self, ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut HitRecord<'a>) -> bool;
 }

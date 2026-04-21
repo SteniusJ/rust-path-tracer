@@ -1,7 +1,7 @@
 use crate::{vec3, ray, util};
 use std::f64::consts::PI;
 
-struct Camera {
+pub struct Camera {
     pub origin: vec3::Vec3,
     pub lower_left_corner: vec3::Vec3,
     pub horizontal: vec3::Vec3,
