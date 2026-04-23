@@ -1,4 +1,5 @@
 use path_tracer;
+use std::sync::Arc;
 
 fn main() {
     let px_width = 1280;
@@ -17,7 +18,7 @@ fn main() {
     let cuboid_mat = path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(0.5, 0.5, 1.0));
 
     let mut world: Vec<Box<dyn path_tracer::hittable::Hittable>> = Vec::new();
-
+/*
     let cuboid = path_tracer::geometry::Cuboid::new(
         path_tracer::vec3::Vec3::new(-0.5, -0.5, 0.5),
         path_tracer::vec3::Vec3::new(0.5, -0.5, 0.5), 
@@ -27,12 +28,13 @@ fn main() {
         path_tracer::vec3::Vec3::new(0.5, -0.5, -0.5),
         path_tracer::vec3::Vec3::new(-0.5, 0.5, -0.5),
         path_tracer::vec3::Vec3::new(0.5, 0.5, -0.5),
-        &cuboid_mat
+        Arc::new(cuboid_mat)
         );
 
     for tri in cuboid.1 {
         world.push(Box::new(tri));
     }
+*/
 
     path_tracer::render(
         px_width,
@@ -41,7 +43,7 @@ fn main() {
         world,
         camera,
         "output.ppm",
-        &default_mat,
+        Arc::new(default_mat),
         5
         );
 }

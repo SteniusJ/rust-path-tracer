@@ -8,9 +8,11 @@ pub mod camera;
 
 use std::fs::File;
 use std::io::prelude::*;
+use std::sync::Arc;
+use std::io;
 
-fn check_hits<'a>(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hittable::HitRecord<'a>, world: &Vec<Box<dyn hittable::Hittable<'a>>>, default_mat: &'a dyn materials::Material) -> bool {
-    let mut temp_rec: hittable::HitRecord<'a> = hittable::HitRecord::empty(default_mat);
+fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hittable::HitRecord, world: &Vec<Box<dyn hittable::Hittable>>, default_mat: Arc<dyn materials::Material>) -> bool {
+    let mut temp_rec: hittable::HitRecord = hittable::HitRecord::empty(default_mat);
     let mut hit = false;
     let mut closest_t = t_max;
 
@@ -19,7 +21,7 @@ fn check_hits<'a>(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hittable::Hi
             hit = true;
             if closest_t > temp_rec.t {
                 closest_t = temp_rec.t;
-                *rec =  temp_rec;
+                *rec =  temp_rec.clone();
             }
         }
     }
@@ -27,10 +29,10 @@ fn check_hits<'a>(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hittable::Hi
     hit
 }
 
-fn get_color<'a>(ray: &ray::Ray, world: &Vec<Box<dyn hittable::Hittable<'a>>>, depth: u8, default_mat: &'a dyn materials::Material) -> vec3::Vec3 {
-    let mut hit_record: hittable::HitRecord<'a> = hittable::HitRecord::empty(default_mat);
+fn get_color(ray: &ray::Ray, world: &Vec<Box<dyn hittable::Hittable>>, depth: u8, default_mat: Arc<dyn materials::Material>) -> vec3::Vec3 {
+    let mut hit_record: hittable::HitRecord = hittable::HitRecord::empty(default_mat.clone());
 
-    if check_hits(ray, 0.001, f64::MAX, &mut hit_record, world, default_mat) {
+    if check_hits(ray, 0.001, f64::MAX, &mut hit_record, world, default_mat.clone()) {
         let mut scattered = ray::Ray::empty();
         let mut attentuation = vec3::Vec3::empty();
 
@@ -46,7 +48,7 @@ fn get_color<'a>(ray: &ray::Ray, world: &Vec<Box<dyn hittable::Hittable<'a>>>, d
     }
 }
 
-pub fn render<'a>(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hittable::Hittable<'a>>>, camera: camera::Camera, output_name: &str, default_mat: &'a dyn materials::Material, prog_interval: i64) {
+pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hittable::Hittable>>, camera: camera::Camera, output_name: &str, default_mat: Arc<dyn materials::Material>, prog_interval: i64) {
     let mut progress = 0.0;
     let mut output = File::create(output_name).unwrap();
 
@@ -64,7 +66,7 @@ pub fn render<'a>(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn
                 let u = i as f64 + util::randf() / px_width as f64;
                 let v = i as f64 + util::randf() / px_height as f64;
                 let ray = camera.get_ray(u, v);
-                color += get_color(&ray, &world, 0, default_mat);
+                color += get_color(&ray, &world, 0, default_mat.clone());
             }
 
             color /= samples as f64;
@@ -77,7 +79,8 @@ pub fn render<'a>(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn
         }
         progress += 100.0 / px_height as f64;
         if progress as i64 % prog_interval == 0 {
-            println!("\rrender progress: {progress}%");
+            print!("\rrender progress: {progress}%");
+            io::stdout().flush().unwrap();
         }
 
         j -= 1;

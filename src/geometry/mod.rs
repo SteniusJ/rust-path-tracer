@@ -1,14 +1,15 @@
 use crate::{vec3, materials, hittable, ray};
+use std::sync::Arc;
 
-pub struct Triangle<'a> {
+pub struct Triangle {
     pub vertice1: vec3::Vec3,
     pub vertice2: vec3::Vec3,
     pub vertice3: vec3::Vec3,
     pub normal: vec3::Vec3,
-    pub material: &'a dyn materials::Material,
+    pub material: Arc<dyn materials::Material>,
 }
 
-impl<'a> Triangle<'a> {
+impl Triangle {
     /*
      * Constructs a Triangle
      *
@@ -24,7 +25,7 @@ impl<'a> Triangle<'a> {
      * 1/___________\2
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: &'a dyn materials::Material) -> Triangle<'a> {
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: Arc<dyn materials::Material>) -> Triangle {
         Triangle {
             vertice1: v1,
             vertice2: v2,
@@ -35,8 +36,8 @@ impl<'a> Triangle<'a> {
     }
 }
 
-impl<'a> hittable::Hittable<'a> for Triangle<'a> {
-    fn hit(&self, ray: &ray::Ray, _t_min: f64, _t_max: f64, rec: &mut hittable::HitRecord<'a>) -> bool {
+impl hittable::Hittable for Triangle {
+    fn hit(&self, ray: &ray::Ray, _t_min: f64, _t_max: f64, rec: &mut hittable::HitRecord) -> bool {
         let r_dir = ray.direction.to_normalized();
 
         if self.normal.dot(&r_dir) == 0.0 {
@@ -64,7 +65,7 @@ impl<'a> hittable::Hittable<'a> for Triangle<'a> {
             rec.surface_normal = self.normal;
             rec.p = int_point;
             rec.t = (ray.origin - int_point).len();
-            rec.material = self.material;
+            rec.material = self.material.clone();
 
             return true;
         }
@@ -73,11 +74,11 @@ impl<'a> hittable::Hittable<'a> for Triangle<'a> {
     }
 }
 
-pub struct Cuboid<'a> {
-    pub triangles: *mut Triangle<'a>,
+pub struct Cuboid {
+    pub triangles: *mut Triangle,
 }
 
-impl<'a> Cuboid<'a> {
+impl Cuboid {
     /* Constructs new Cuboid
      * Returns vector of Triangle
      *
@@ -92,20 +93,20 @@ impl<'a> Cuboid<'a> {
      * 1/_______2/
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'a dyn materials::Material) -> (Cuboid<'a>, Vec<Triangle<'a>>) {
-        let mut triangles: Vec<Triangle<'a>> = Vec::with_capacity(12);
-        triangles.push(Triangle::new(v1, v2, v3, material));
-        triangles.push(Triangle::new(v3, v2, v4, material));
-        triangles.push(Triangle::new(v1, v3, v5, material));
-        triangles.push(Triangle::new(v3, v7, v5, material));
-        triangles.push(Triangle::new(v1, v2, v5, material));
-        triangles.push(Triangle::new(v5, v2, v6, material));
-        triangles.push(Triangle::new(v8, v4, v2, material));
-        triangles.push(Triangle::new(v2, v6, v8, material));
-        triangles.push(Triangle::new(v5, v7, v8, material));
-        triangles.push(Triangle::new(v5, v8, v6, material));
-        triangles.push(Triangle::new(v3, v8, v7, material));
-        triangles.push(Triangle::new(v3, v4, v8, material));
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: Arc<dyn materials::Material>) -> (Cuboid, Vec<Triangle>) {
+        let mut triangles: Vec<Triangle> = Vec::with_capacity(12);
+        triangles.push(Triangle::new(v1, v2, v3, material.clone()));
+        triangles.push(Triangle::new(v3, v2, v4, material.clone()));
+        triangles.push(Triangle::new(v1, v3, v5, material.clone()));
+        triangles.push(Triangle::new(v3, v7, v5, material.clone()));
+        triangles.push(Triangle::new(v1, v2, v5, material.clone()));
+        triangles.push(Triangle::new(v5, v2, v6, material.clone()));
+        triangles.push(Triangle::new(v8, v4, v2, material.clone()));
+        triangles.push(Triangle::new(v2, v6, v8, material.clone()));
+        triangles.push(Triangle::new(v5, v7, v8, material.clone()));
+        triangles.push(Triangle::new(v5, v8, v6, material.clone()));
+        triangles.push(Triangle::new(v3, v8, v7, material.clone()));
+        triangles.push(Triangle::new(v3, v4, v8, material.clone()));
 
         (
             Cuboid {
