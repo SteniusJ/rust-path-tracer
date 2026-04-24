@@ -29,7 +29,7 @@ pub fn schlick(cosine: f64, refraction_index: f64) -> f64 {
 }
 
 pub fn random_in_unit_sphere() -> vec3::Vec3 {
-    let mut p = vec3::Vec3::empty();
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), util::randf()) - vec3::Vec3::new(1.0, 1.0, 1.0);
     
     while p.sqrt_len() >= 1.0 {
         p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), util::randf()) - vec3::Vec3::new(1.0, 1.0, 1.0);

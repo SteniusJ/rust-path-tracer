@@ -1,6 +1,7 @@
 use crate::{vec3, ray, util};
 use std::f64::consts::PI;
 
+#[derive(Debug)]
 pub struct Camera {
     pub origin: vec3::Vec3,
     pub lower_left_corner: vec3::Vec3,
@@ -41,7 +42,7 @@ impl Camera {
 }
 
 fn random_in_unit_disk() -> vec3::Vec3 {
-    let mut p: vec3::Vec3 = vec3::Vec3::empty();
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), 0.0) - vec3::Vec3::new(1.0, 1.0, 1.0);
 
     while p.dot(&p) >= 1.0 {
         p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);

@@ -44,7 +44,8 @@ fn get_color(ray: &ray::Ray, world: &Vec<Box<dyn hittable::Hittable>>, depth: u8
     } else {
         let unit_direction = ray.direction.to_normalized();
         let t = 0.5 * (unit_direction.y + 1.0);
-        return (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+        let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+        return color;
     }
 }
 
