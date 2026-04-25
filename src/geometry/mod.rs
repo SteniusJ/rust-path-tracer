@@ -51,7 +51,7 @@ impl hittable::Hittable for Triangle {
             return false;
         }
 
-        let int_point = ray.origin + ray.direction * t;
+        let int_point = ray.origin + r_dir * t;
 
         let edge_1_2 = self.vertice1 - self.vertice2;
         let edge_1_3 = self.vertice1 - self.vertice3;

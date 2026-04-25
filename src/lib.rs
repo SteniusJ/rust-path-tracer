@@ -57,15 +57,15 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hit
     let out = format!("P3\n{px_width} {px_height}\n255\n");
     output.write(out.as_bytes()).unwrap();
 
-    let mut j = px_height.clone();
+    let mut j = px_height.clone() + 1;
     while j >= 1 {
         let mut i = 0;
         while i < px_width {
             let mut color = vec3::Vec3::empty();
 
             for _ in 0..samples {
-                let u = i as f64 + util::randf() / px_width as f64;
-                let v = i as f64 + util::randf() / px_height as f64;
+                let u = (i as f64 + util::randf()) / px_width as f64;
+                let v = (j as f64 + util::randf()) / px_height as f64;
                 let ray = camera.get_ray(u, v);
                 color += get_color(&ray, &world, 0, default_mat.clone());
             }
@@ -78,6 +78,7 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hit
 
             i += 1;
         }
+
         progress += 100.0 / px_height as f64;
         if progress as i64 % prog_interval == 0 {
             print!("\rrender progress: {progress}%");

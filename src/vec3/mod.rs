@@ -30,7 +30,7 @@ impl Vec3 {
         }
     }
     pub fn into_normalized(&mut self) {
-        let k: f64 = 1.0 / self.len();
+        let k = 1.0 / self.len();
         *self *= k;
     }
     pub fn to_color(&self) -> Color {
@@ -42,7 +42,7 @@ impl Vec3 {
         }
     }
     pub fn dot(&self, v: &Vec3) -> f64 {
-        self.x * v.x + self.y * v.y + self.z *v.z
+        self.x * v.x + self.y * v.y + self.z * v.z
     }
     pub fn cross(&self, v: &Vec3) -> Vec3 {
         Vec3 {
@@ -132,6 +132,22 @@ impl ops::MulAssign<f64> for Vec3 {
         self.x *= rhs;
         self.y *= rhs;
         self.z *= rhs;
+    }
+}
+
+impl ops::Div for Vec3 {
+    type Output = Self;
+
+    fn div(self, rhs: Vec3) -> Self::Output {
+        Self { x: self.x / rhs.x, y: self.y / rhs.y, z: self.z / rhs.z }
+    }
+}
+
+impl ops::Div<f64> for Vec3 {
+    type Output = Self;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Self { x: self.x / rhs, y: self.y / rhs, z: self.z / rhs }
     }
 }
 

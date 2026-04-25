@@ -14,7 +14,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(look_from: vec3::Vec3, look_at: vec3::Vec3, v_up: vec3::Vec3, v_fov: f64, aspect: f64, aperature: f64, focus_dist: f64) -> Camera {
+    pub fn new(look_from: vec3::Vec3, look_at: vec3::Vec3, v_up: vec3::Vec3, v_fov: f64, aspect: f64, aperture: f64, focus_dist: f64) -> Camera {
         let theta = v_fov * PI / 180.0;
         let half_height = (theta / 2.0).tan();
         let half_width = aspect * half_height;
@@ -30,7 +30,7 @@ impl Camera {
             u: u,
             v: v,
             w: w,
-            lens_radius: aperature / 2.0,
+            lens_radius: aperture / 2.0,
         }
     }
     pub fn get_ray(&self, s: f64, t: f64) -> ray::Ray {
@@ -42,7 +42,7 @@ impl Camera {
 }
 
 fn random_in_unit_disk() -> vec3::Vec3 {
-    let mut p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), 0.0) - vec3::Vec3::new(1.0, 1.0, 1.0);
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
 
     while p.dot(&p) >= 1.0 {
         p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
