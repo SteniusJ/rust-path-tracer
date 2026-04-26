@@ -34,11 +34,10 @@ impl Vec3 {
         *self *= k;
     }
     pub fn to_color(&self) -> Color {
-        let normalized = self.to_normalized();
         Color {
-            r: (normalized.x * 255.0) as u8,
-            g: (normalized.y * 255.0) as u8,
-            b: (normalized.z * 255.0) as u8
+            r: (self.x * 255.99) as u8,
+            g: (self.y * 255.99) as u8,
+            b: (self.z * 255.99) as u8
         }
     }
     pub fn dot(&self, v: &Vec3) -> f64 {
