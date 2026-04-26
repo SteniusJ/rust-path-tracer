@@ -59,7 +59,9 @@ impl hittable::Hittable for Triangle {
 
         let denominator = (edge_1_2.dot(&edge_1_2) * edge_1_3.dot(&edge_1_3)) - (edge_1_2.dot(&edge_1_3) * edge_1_2.dot(&edge_1_3));
         let u = ((edge_1_2.dot(&edge_int) * edge_1_3.dot(&edge_1_3)) - (edge_1_2.dot(&edge_1_3) * edge_1_3.dot(&edge_int))) / denominator;
-        let v = ((edge_1_2.dot(&edge_1_2) * edge_1_3.dot(&edge_int)) * (edge_1_2.dot(&edge_1_3) * edge_1_2.dot(&edge_int))) / denominator;
+        let v = ((edge_1_2.dot(&edge_1_2) * edge_1_3.dot(&edge_int)) - (edge_1_2.dot(&edge_1_3) * edge_1_2.dot(&edge_int))) / denominator;
+
+        //println!("[geometry] [triangle] u: {u}, v: {v}, denom: {denominator}, int: {int_point}");
 
         if u >= 0.0 && v >= 0.0 && u + v <= 1.0 {
             rec.surface_normal = self.normal;
