@@ -1,5 +1,4 @@
 use path_tracer;
-use std::sync::Arc;
 
 fn main() {
     let px_width = 1280;
@@ -15,9 +14,9 @@ fn main() {
     let aspect = px_width as f64 / px_height as f64;
     let camera = path_tracer::camera::Camera::new(look_from, look_at, v_up, fov, aspect, aperature, dist_to_focus);
 
-    let default_mat = path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::empty());
-    let cuboid_mat = path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(0.5, 0.2, 0.2));
-    let tri_mat = path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(1.0, 0.0, 0.0));
+    let default_mat = Box::new(path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::empty()));
+    let cuboid_mat = Box::new(path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(0.5, 0.2, 0.2)));
+    let tri_mat = Box::new(path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(1.0, 0.0, 0.0)));
 
     let mut world: Vec<Box<dyn path_tracer::hittable::Hittable>> = Vec::new();
 
@@ -30,7 +29,7 @@ fn main() {
         path_tracer::vec3::Vec3::new(-4.0, 1.0, -4.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -2.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -4.0),
-        Arc::new(cuboid_mat)
+        Box::leak(cuboid_mat)
         );
 
     for tri in cuboid.1 {
@@ -41,7 +40,7 @@ fn main() {
                 path_tracer::vec3::Vec3::new(-2.0, 1.0, 4.0),
                 path_tracer::vec3::Vec3::new(-2.0, 1.0, 2.0),
                 path_tracer::vec3::Vec3::new(-2.0, 3.0, 3.0),
-                Arc::new(tri_mat)
+                Box::leak(tri_mat)
                 )));
 
     path_tracer::render(
@@ -51,7 +50,7 @@ fn main() {
         world,
         camera,
         "output.ppm",
-        Arc::new(default_mat),
-        5
+        Box::leak(default_mat),
+        1
         );
 }

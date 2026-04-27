@@ -1,5 +1,6 @@
 use crate::{vec3, ray, util};
 use std::f64::consts::PI;
+use rand::rngs::SmallRng;
 
 #[derive(Debug)]
 pub struct Camera {
@@ -33,19 +34,19 @@ impl Camera {
             lens_radius: aperture / 2.0,
         }
     }
-    pub fn get_ray(&self, s: f64, t: f64) -> ray::Ray {
-        let rd = self.lens_radius * random_in_unit_disk();
+    pub fn get_ray(&self, s: f64, t: f64, rng: &mut SmallRng) -> ray::Ray {
+        let rd = self.lens_radius * random_in_unit_disk(rng);
         let offset = self.u * rd.x + self.v * rd.y;
 
         ray::Ray::new(self.origin + offset, self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset)
     }
 }
 
-fn random_in_unit_disk() -> vec3::Vec3 {
-    let mut p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
+fn random_in_unit_disk(rng: &mut SmallRng) -> vec3::Vec3 {
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
 
     while p.dot(&p) >= 1.0 {
-        p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
+        p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
     }
     p
 }

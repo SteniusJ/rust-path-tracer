@@ -1,7 +1,8 @@
 use crate::{ray, vec3, hittable, util};
+use rand::rngs::SmallRng;
 
 pub trait Material {
-    fn scatter(&self, ray: &ray::Ray, hit_record: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray) -> bool;
+    fn scatter(&self, ray: &ray::Ray, hit_record: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool;
 }
 
 pub fn reflect(v: &vec3::Vec3, n: &vec3::Vec3) -> vec3::Vec3 {
@@ -28,11 +29,11 @@ pub fn schlick(cosine: f64, refraction_index: f64) -> f64 {
     r0 + (1.0 - r0) * f64::powf(1.0 - cosine, 5.0)
 }
 
-pub fn random_in_unit_sphere() -> vec3::Vec3 {
-    let mut p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), util::randf()) - vec3::Vec3::new(1.0, 1.0, 1.0);
+pub fn random_in_unit_sphere(rng: &mut SmallRng) -> vec3::Vec3 {
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), util::randf(rng)) - vec3::Vec3::new(1.0, 1.0, 1.0);
     
     while p.sqrt_len() >= 1.0 {
-        p = 2.0 * vec3::Vec3::new(util::randf(), util::randf(), util::randf()) - vec3::Vec3::new(1.0, 1.0, 1.0);
+        p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), util::randf(rng)) - vec3::Vec3::new(1.0, 1.0, 1.0);
     }
 
     p
@@ -53,8 +54,8 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _r_in: &ray::Ray, rec: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray) -> bool {
-        let target = rec.p + rec.surface_normal + random_in_unit_sphere();
+    fn scatter(&self, _r_in: &ray::Ray, rec: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+        let target = rec.p + rec.surface_normal + random_in_unit_sphere(rng);
         *scattered = ray::Ray::new(rec.p, target - rec.p);
         *attentuation = self.albedo;
         true
