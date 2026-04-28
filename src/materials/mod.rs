@@ -43,6 +43,7 @@ pub fn random_in_unit_sphere(rng: &mut SmallRng) -> vec3::Vec3 {
  * Materials
  */
 
+#[derive(Clone)]
 pub struct Lambertian {
     pub albedo: vec3::Vec3
 }

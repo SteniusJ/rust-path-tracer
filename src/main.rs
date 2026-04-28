@@ -29,10 +29,19 @@ fn main() {
         path_tracer::vec3::Vec3::new(-4.0, 1.0, -4.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -2.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -4.0),
-        Box::leak(cuboid_mat)
+        Box::leak(cuboid_mat.clone())
         );
 
     for tri in cuboid.1 {
+        world.push(Box::new(tri));
+    }
+
+    let custom_obj = path_tracer::geometry::ObjImport::new(
+        "suzanne.obj",
+        Box::leak(cuboid_mat)
+        );
+
+    for tri in custom_obj.1 {
         world.push(Box::new(tri));
     }
 

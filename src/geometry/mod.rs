@@ -1,4 +1,6 @@
 use crate::{vec3, materials, hittable, ray};
+use std::fs::File;
+use std::io::Read;
 
 pub struct Triangle {
     pub vertice1: vec3::Vec3,
@@ -114,4 +116,64 @@ impl Cuboid {
             triangles
         )
     } 
+}
+
+pub struct ObjImport {
+    pub triangles: *mut Triangle,
+}
+
+impl ObjImport {
+    /* Constructs new Custom model from .obj wavefront file.
+     * Doesn't auto triangulate, requires mesh to be pre triangulated.
+     */
+    pub fn new(file_name: &str, material: &'static dyn materials::Material) -> (ObjImport, Vec<Triangle>) {
+        let mut triangles: Vec<Triangle> = Vec::new();
+        let mut import_file = File::open(file_name).unwrap();
+        let mut file_contents = String::new();
+        let mut vertices: Vec<vec3::Vec3> = Vec::new();
+
+        import_file.read_to_string(&mut file_contents).unwrap();
+
+        for line in file_contents.lines() {
+            let vertex_data: Vec<&str> = line.split(' ').collect();
+
+            match vertex_data[0] {
+                "v" => {
+                    let x = vertex_data[1].parse::<f64>().unwrap();
+                    let y = vertex_data[2].parse::<f64>().unwrap();
+                    let z = vertex_data[3].parse::<f64>().unwrap();
+
+                    vertices.push(vec3::Vec3::new(x, y, z));
+                },
+                "f" => {
+                    // If triangles vector has no pushes reserves an aproximated amount of memory
+                    if triangles.is_empty() {
+                        triangles.reserve(vertices.len() / 3);
+                    }
+
+                    /* 
+                     * OBJ files store face data as "f 1/2/1 3/5/3 7/6/5"
+                     * We only care for the first number hence the ugly one-liner where we seperate
+                     * only the first index
+                     *
+                     * Indexes are also stored starting from 1 which means we have to subtract by 1
+                     * for our 0 indexing.
+                     */
+                    let vert1_idx = vertex_data[1].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
+                    let vert2_idx = vertex_data[2].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
+                    let vert3_idx = vertex_data[3].split('/').next().unwrap().parse::<usize>().unwrap() - 1;
+
+                    triangles.push(Triangle::new(vertices[vert1_idx], vertices[vert2_idx], vertices[vert3_idx], material));
+                },
+                _ => (),
+            }
+        }
+
+        (
+            ObjImport {
+                triangles: triangles.as_mut_ptr(),
+            },
+            triangles
+        )
+    }
 }
