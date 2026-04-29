@@ -50,6 +50,17 @@ impl Vec3 {
             z: self.x * v.y - self.y * v.x
         }
     }
+    pub fn into_positive(&mut self) {
+        if self.x < 0.0 {
+            self.x = -self.x;
+        }
+        if self.y < 0.0 {
+            self.y = -self.y;
+        }
+        if self.z < 0.0 {
+            self.z = -self.z;
+        }
+    }
 }
 
 impl fmt::Display for Vec3 {

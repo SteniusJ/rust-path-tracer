@@ -16,6 +16,8 @@ fn main() {
 
     let default_mat = Box::new(path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::empty()));
     let cuboid_mat = Box::new(path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(0.5, 0.2, 0.2)));
+    let glass = Box::new(path_tracer::materials::Dielectric::new(1.5));
+    let metallic = Box::new(path_tracer::materials::Metal::new(path_tracer::vec3::Vec3::new(0.5, 0.5, 0.5), 0.0));
     let tri_mat = Box::new(path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(1.0, 0.0, 0.0)));
 
     let mut world: Vec<Box<dyn path_tracer::hittable::Hittable>> = Vec::new();
@@ -29,16 +31,32 @@ fn main() {
         path_tracer::vec3::Vec3::new(-4.0, 1.0, -4.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -2.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -4.0),
-        Box::leak(cuboid_mat.clone())
+        Box::leak(cuboid_mat)
         );
 
     for tri in cuboid.1 {
         world.push(Box::new(tri));
     }
 
+    let cuboid_metallic = path_tracer::geometry::Cuboid::new(
+        path_tracer::vec3::Vec3::new(200.0, -1.0, 200.0),
+        path_tracer::vec3::Vec3::new(200.0, -1.0, -200.0),
+        path_tracer::vec3::Vec3::new(200.0, 0.0, 200.0),
+        path_tracer::vec3::Vec3::new(200.0, 0.0, -200.0),
+        path_tracer::vec3::Vec3::new(-200.0, -1.0, 200.0),
+        path_tracer::vec3::Vec3::new(-200.0, -1.0, -200.0),
+        path_tracer::vec3::Vec3::new(-200.0, 0.0, 200.0),
+        path_tracer::vec3::Vec3::new(-200.0, 0.0, -200.0),
+        Box::leak(metallic)
+        );
+
+    for tri in cuboid_metallic.1 {
+        world.push(Box::new(tri));
+    }
+
     let custom_obj = path_tracer::geometry::ObjImport::new(
         "suzanne.obj",
-        Box::leak(cuboid_mat)
+        Box::leak(glass)
         );
 
     for tri in custom_obj.1 {
