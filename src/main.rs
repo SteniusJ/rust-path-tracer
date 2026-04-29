@@ -1,8 +1,8 @@
 use path_tracer;
 
 fn main() {
-    let px_width = 1280;
-    let px_height = 720;
+    let px_width = 1920;//1280;
+    let px_height = 1080;//720;
     let samples = 5;
 
     let look_from = path_tracer::vec3::Vec3::new(3.0, 2.0, 0.5);
@@ -22,7 +22,7 @@ fn main() {
 
     let mut world: Vec<Box<dyn path_tracer::hittable::Hittable>> = Vec::new();
 
-    let cuboid = path_tracer::geometry::Cuboid::new(
+    let _cuboid = path_tracer::geometry::Cuboid::new_to_world(
         path_tracer::vec3::Vec3::new(-2.0, 1.0, -2.0),
         path_tracer::vec3::Vec3::new(-2.0, 1.0, -4.0), 
         path_tracer::vec3::Vec3::new(-2.0, 3.0, -2.0),
@@ -31,37 +31,28 @@ fn main() {
         path_tracer::vec3::Vec3::new(-4.0, 1.0, -4.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -2.0),
         path_tracer::vec3::Vec3::new(-4.0, 3.0, -4.0),
-        Box::leak(cuboid_mat)
+        Box::leak(cuboid_mat),
+        &mut world
         );
 
-    for tri in cuboid.1 {
-        world.push(Box::new(tri));
-    }
-
-    let cuboid_metallic = path_tracer::geometry::Cuboid::new(
-        path_tracer::vec3::Vec3::new(200.0, -1.0, 200.0),
-        path_tracer::vec3::Vec3::new(200.0, -1.0, -200.0),
+    let _cuboid_metallic = path_tracer::geometry::Cuboid::new_to_world(
+        path_tracer::vec3::Vec3::new(200.0, -3.0, 200.0),
+        path_tracer::vec3::Vec3::new(200.0, -3.0, -200.0),
         path_tracer::vec3::Vec3::new(200.0, 0.0, 200.0),
         path_tracer::vec3::Vec3::new(200.0, 0.0, -200.0),
-        path_tracer::vec3::Vec3::new(-200.0, -1.0, 200.0),
-        path_tracer::vec3::Vec3::new(-200.0, -1.0, -200.0),
+        path_tracer::vec3::Vec3::new(-200.0, -3.0, 200.0),
+        path_tracer::vec3::Vec3::new(-200.0, -3.0, -200.0),
         path_tracer::vec3::Vec3::new(-200.0, 0.0, 200.0),
         path_tracer::vec3::Vec3::new(-200.0, 0.0, -200.0),
-        Box::leak(metallic)
+        Box::leak(metallic),
+        &mut world
         );
 
-    for tri in cuboid_metallic.1 {
-        world.push(Box::new(tri));
-    }
-
-    let custom_obj = path_tracer::geometry::ObjImport::new(
+    let _custom_obj = path_tracer::geometry::ObjImport::new_to_world(
         "suzanne.obj",
-        Box::leak(glass)
+        Box::leak(glass),
+        &mut world
         );
-
-    for tri in custom_obj.1 {
-        world.push(Box::new(tri));
-    }
 
     world.push(Box::new(path_tracer::geometry::Triangle::new(
                 path_tracer::vec3::Vec3::new(-2.0, 1.0, 4.0),

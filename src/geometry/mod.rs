@@ -116,6 +116,16 @@ impl Cuboid {
             triangles
         )
     } 
+    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'static dyn materials::Material, world: &mut Vec<Box<dyn hittable::Hittable>>) -> Cuboid {
+        let cuboid = Cuboid::new(v1, v2, v3, v4, v5, v6, v7, v8, material);
+
+        world.reserve(12);
+        for tri in cuboid.1 {
+            world.push(Box::new(tri));
+        }
+
+        cuboid.0
+    }
 }
 
 pub struct ObjImport {
@@ -175,5 +185,15 @@ impl ObjImport {
             },
             triangles
         )
+    }
+    pub fn new_to_world(file_name: &str, material: &'static dyn materials::Material, world: &mut Vec<Box<dyn hittable::Hittable>>) -> ObjImport {
+        let import = ObjImport::new(file_name, material);
+
+        world.reserve(import.1.len());
+        for tri in import.1 {
+            world.push(Box::new(tri));
+        }
+
+        import.0
     }
 }
