@@ -3,8 +3,9 @@ pub mod ray;
 pub mod hittable;
 pub mod geometry;
 pub mod materials;
-pub mod util;
 pub mod camera;
+mod util;
+mod output;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -53,13 +54,7 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hit
     let mut progress = 0.0;
     let mut output = File::create(output_name).unwrap();
     let mut rng: SmallRng = rand::make_rng();
-    let mut output_string = String::new(); // If you keep the string thing change this to
-                                                   // be an ::with_capacity with a rough estimate
-                                                   // of size. ((width * height) * 12) + 9 
-
-    // write ppm header
-    let out = format!("P3\n{px_width} {px_height}\n255\n");
-    output.write(out.as_bytes()).unwrap();
+    let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
 
     let mut j = px_height.clone();
     while j >= 1 {
@@ -77,9 +72,7 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hit
             color /= samples as f64;
             // gamma correction
             color = vec3::Vec3::new(color.x.sqrt(), color.y.sqrt(), color.z.sqrt());
-            let out = format!("{}\n", color.to_color());
-            output_string += &out; // rewrite this to be some other representation of this data
-                                   // than a String. 
+            render_data.push(color.to_color());
 
             i += 1;
         }
@@ -93,6 +86,6 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hit
         j -= 1;
     }
 
-    output.write_all(output_string.as_bytes()).unwrap();
+    output.write_all(render_data.to_string().as_bytes()).unwrap();
     output.flush().unwrap();
 }

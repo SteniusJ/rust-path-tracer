@@ -1,9 +1,9 @@
 use path_tracer;
 
 fn main() {
-    let px_width = 1920;//1280;
-    let px_height = 1080;//720;
-    let samples = 5;
+    let px_width = 200;
+    let px_height = 100;
+    let samples = 1;
 
     let look_from = path_tracer::vec3::Vec3::new(3.0, 2.0, 0.5);
     let look_at = path_tracer::vec3::Vec3::new(-2.0, 2.0, 0.0);
