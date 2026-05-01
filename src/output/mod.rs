@@ -26,8 +26,6 @@ impl RenderPPM {
         
         for pixel_data in &self.pixels {
             output += &pixel_data.to_string_ppm();
-            println!("cap: {}", output.capacity());
-            println!("len: {}", output.len());
         }
 
         output

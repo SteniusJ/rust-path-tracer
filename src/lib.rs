@@ -1,6 +1,6 @@
 pub mod vec3;
 pub mod ray;
-pub mod hittable;
+pub mod hitable;
 pub mod geometry;
 pub mod materials;
 pub mod camera;
@@ -12,8 +12,8 @@ use std::io::prelude::*;
 use std::io;
 use rand::rngs::SmallRng;
 
-fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hittable::HitRecord, world: &Vec<Box<dyn hittable::Hittable>>, default_mat: &'static dyn materials::Material) -> bool {
-    let mut temp_rec: hittable::HitRecord = hittable::HitRecord::empty(default_mat);
+fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, world: &Vec<Box<dyn hitable::Hitable>>, default_mat: &'static dyn materials::Material) -> bool {
+    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
     let mut hit = false;
     let mut closest_t = t_max;
 
@@ -30,8 +30,8 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hittable::HitRec
     hit
 }
 
-fn get_color(ray: &ray::Ray, world: &Vec<Box<dyn hittable::Hittable>>, depth: u8, default_mat: &'static dyn materials::Material, rng: &mut SmallRng) -> vec3::Vec3 {
-    let mut hit_record: hittable::HitRecord = hittable::HitRecord::empty(default_mat);
+fn get_color(ray: &ray::Ray, world: &Vec<Box<dyn hitable::Hitable>>, depth: u8, default_mat: &'static dyn materials::Material, rng: &mut SmallRng) -> vec3::Vec3 {
+    let mut hit_record: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
 
     if check_hits(ray, 0.001, f64::MAX, &mut hit_record, world, default_mat) {
         let mut scattered = ray::Ray::empty();
@@ -50,7 +50,7 @@ fn get_color(ray: &ray::Ray, world: &Vec<Box<dyn hittable::Hittable>>, depth: u8
     }
 }
 
-pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hittable::Hittable>>, camera: camera::Camera, output_name: &str, default_mat: &'static dyn materials::Material, prog_interval: i64) {
+pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hitable::Hitable>>, camera: camera::Camera, output_name: &str, default_mat: &'static dyn materials::Material, prog_interval: i64) {
     let mut progress = 0.0;
     let mut output = File::create(output_name).unwrap();
     let mut rng: SmallRng = rand::make_rng();

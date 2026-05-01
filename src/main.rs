@@ -20,7 +20,7 @@ fn main() {
     let metallic = Box::new(path_tracer::materials::Metal::new(path_tracer::vec3::Vec3::new(0.5, 0.5, 0.5), 0.0));
     let tri_mat = Box::new(path_tracer::materials::Lambertian::new(path_tracer::vec3::Vec3::new(1.0, 0.0, 0.0)));
 
-    let mut world: Vec<Box<dyn path_tracer::hittable::Hittable>> = Vec::new();
+    let mut world: Vec<Box<dyn path_tracer::hitable::Hitable>> = Vec::new();
 
     let _cuboid = path_tracer::geometry::Cuboid::new_to_world(
         path_tracer::vec3::Vec3::new(-2.0, 1.0, -2.0),

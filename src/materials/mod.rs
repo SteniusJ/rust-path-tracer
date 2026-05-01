@@ -1,8 +1,8 @@
-use crate::{ray, vec3, hittable, util};
+use crate::{ray, vec3, hitable, util};
 use rand::rngs::SmallRng;
 
 pub trait Material {
-    fn scatter(&self, ray: &ray::Ray, hit_record: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool;
+    fn scatter(&self, ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool;
 }
 
 pub fn reflect(v: &vec3::Vec3, n: &vec3::Vec3) -> vec3::Vec3 {
@@ -55,7 +55,7 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _r_in: &ray::Ray, rec: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+    fn scatter(&self, _r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
         let target = rec.p + rec.surface_normal + random_in_unit_sphere(rng);
         *scattered = ray::Ray::new(rec.p, target - rec.p);
         *attentuation = self.albedo;
@@ -83,7 +83,7 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, r_in: &ray::Ray, rec: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+    fn scatter(&self, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
         let reflected = reflect(&r_in.direction.to_normalized(), &rec.surface_normal);
         *scattered = ray::Ray::new(rec.p, reflected + self.fuzz * random_in_unit_sphere(rng));
         *attentuation = self.albedo;
@@ -103,7 +103,7 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, r_in: &ray::Ray, rec: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+    fn scatter(&self, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
         let outward_normal: vec3::Vec3;
         let ni_over_nt: f64;
         let reflect_prob: f64;
@@ -150,7 +150,7 @@ impl Normal {
 }
 
 impl Material for Normal {
-    fn scatter(&self, _r_in: &ray::Ray, rec: &hittable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+    fn scatter(&self, _r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
         let target = rec.p + rec.surface_normal + random_in_unit_sphere(rng);
         *scattered = ray::Ray::new(rec.p, target - rec.p);
         let mut normal_color = rec.surface_normal.to_normalized();

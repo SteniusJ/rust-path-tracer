@@ -1,4 +1,4 @@
-use crate::{vec3, materials, hittable, ray};
+use crate::{vec3, materials, hitable, ray};
 use std::fs::File;
 use std::io::Read;
 
@@ -37,8 +37,8 @@ impl Triangle {
     }
 }
 
-impl hittable::Hittable for Triangle {
-    fn hit(&self, ray: &ray::Ray, _t_min: f64, _t_max: f64, rec: &mut hittable::HitRecord) -> bool {
+impl hitable::Hitable for Triangle {
+    fn hit(&self, ray: &ray::Ray, _t_min: f64, _t_max: f64, rec: &mut hitable::HitRecord) -> bool {
         let r_dir = ray.direction.to_normalized();
 
         if self.normal.dot(&r_dir) == 0.0 {
@@ -116,7 +116,7 @@ impl Cuboid {
             triangles
         )
     } 
-    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'static dyn materials::Material, world: &mut Vec<Box<dyn hittable::Hittable>>) -> Cuboid {
+    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'static dyn materials::Material, world: &mut Vec<Box<dyn hitable::Hitable>>) -> Cuboid {
         let cuboid = Cuboid::new(v1, v2, v3, v4, v5, v6, v7, v8, material);
 
         world.reserve(12);
@@ -186,7 +186,7 @@ impl ObjImport {
             triangles
         )
     }
-    pub fn new_to_world(file_name: &str, material: &'static dyn materials::Material, world: &mut Vec<Box<dyn hittable::Hittable>>) -> ObjImport {
+    pub fn new_to_world(file_name: &str, material: &'static dyn materials::Material, world: &mut Vec<Box<dyn hitable::Hitable>>) -> ObjImport {
         let import = ObjImport::new(file_name, material);
 
         world.reserve(import.1.len());

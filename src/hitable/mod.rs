@@ -26,6 +26,6 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable {
+pub trait Hitable {
     fn hit(&self, ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
 }
