@@ -26,6 +26,9 @@ impl HitRecord {
     }
 }
 
+/*
+ * Hitable trait. Implement for geometry that should be hitable.
+ */
 pub trait Hitable {
     fn hit(&self, ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
 }

@@ -80,7 +80,8 @@ pub struct Cuboid {
 }
 
 impl Cuboid {
-    /* Constructs new Cuboid
+    /* 
+     * Constructs new Cuboid
      * Returns vector of Triangle
      *
      * Placement order of vertices. Face 1,2,3,4 is closer to the observer
@@ -133,7 +134,8 @@ pub struct ObjImport {
 }
 
 impl ObjImport {
-    /* Constructs new Custom model from .obj wavefront file.
+    /* 
+     * Constructs new Custom model from .obj wavefront file.
      * Doesn't auto triangulate, requires mesh to be pre triangulated.
      */
     pub fn new(file_name: &str, material: &'static dyn materials::Material) -> (ObjImport, Vec<Triangle>) {

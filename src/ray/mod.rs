@@ -16,6 +16,9 @@ impl Ray {
             direction: vec3::Vec3::empty()
         }
     }
+    /*
+     * Returns vector at t distance along ray.
+     */
     pub fn point_at_param(&self, t: f64) -> vec3::Vec3 {
         self.origin + t * self.direction
     }

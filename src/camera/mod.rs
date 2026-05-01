@@ -15,6 +15,9 @@ pub struct Camera {
 }
 
 impl Camera {
+    /*
+     * Camera constructor
+     */
     pub fn new(look_from: vec3::Vec3, look_at: vec3::Vec3, v_up: vec3::Vec3, v_fov: f64, aspect: f64, aperture: f64, focus_dist: f64) -> Camera {
         let theta = v_fov * PI / 180.0;
         let half_height = (theta / 2.0).tan();
@@ -34,6 +37,10 @@ impl Camera {
             lens_radius: aperture / 2.0,
         }
     }
+    /*
+     * Returns ray pointing from camera origin to given screen space coordinates.
+     * Adds slight randomness to ray position.
+     */
     pub fn get_ray(&self, s: f64, t: f64, rng: &mut SmallRng) -> ray::Ray {
         let rd = self.lens_radius * random_in_unit_disk(rng);
         let offset = self.u * rd.x + self.v * rd.y;
@@ -42,6 +49,9 @@ impl Camera {
     }
 }
 
+/*
+ * Returns random Vec3 Vec3(0.0-1.0, 0.0-1.0, 0.0)
+ */
 fn random_in_unit_disk(rng: &mut SmallRng) -> vec3::Vec3 {
     let mut p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
 

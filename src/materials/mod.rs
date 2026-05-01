@@ -48,6 +48,10 @@ pub struct Lambertian {
     pub albedo: vec3::Vec3
 }
 
+/*
+ * Lambertian material.
+ * Solid matte color.
+ */
 impl Lambertian {
     pub fn new(albedo: vec3::Vec3) -> Lambertian {
         Lambertian { albedo }
@@ -63,6 +67,11 @@ impl Material for Lambertian {
     }
 }
 
+/*
+ * Metal material.
+ * Metallic. Fuzz is surface roughness, higher fuzz == rougher, lower fuzz == more polished.
+ * 0.0 fuzz == mirror like perfect reflection.
+ */
 #[derive(Clone)]
 pub struct Metal {
     pub albedo: vec3::Vec3,
@@ -91,6 +100,10 @@ impl Material for Metal {
     }
 }
 
+/*
+ * Dielectric material.
+ * Glass like material. Accurate glass like material with refraction_index = 1.5.
+ */
 #[derive(Clone)]
 pub struct Dielectric {
     pub refraction_index: f64,
@@ -139,6 +152,10 @@ impl Material for Dielectric {
     }
 }
 
+/*
+ * Normal material.
+ * Debug material for visualization of surface normals.
+ */
 #[derive(Clone)]
 pub struct Normal {
 }
