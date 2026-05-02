@@ -50,10 +50,14 @@ fn get_color(ray: &ray::Ray, world: &Vec<Box<dyn hitable::Hitable>>, depth: u8, 
     }
 }
 
-pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hitable::Hitable>>, camera: camera::Camera, output_name: &str, default_mat: &'static dyn materials::Material, prog_interval: i64) {
+pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hitable::Hitable>>, camera: camera::Camera, output_name: &str, default_mat: &'static dyn materials::Material, prog_interval: i64, denoising: u8) {
     let mut progress = 0.0;
     let mut output = File::create(output_name).unwrap();
     let mut rng: SmallRng = rand::make_rng();
+    // due to denoising removing the edges, we make the initial render bigger by the window
+    // width(denoising)
+    let px_width = px_width + denoising as u16;
+    let px_height = px_height + denoising as u16;
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
 
     let mut j = px_height.clone();
@@ -79,13 +83,18 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hit
 
         progress += 100.0 / px_height as f64;
         if progress as i64 % prog_interval == 0 {
-            print!("\rrender progress: {progress}%");
+            print!("\rrender progress: {progress:.2}%");
             io::stdout().flush().unwrap();
         }
 
         j -= 1;
     }
 
+    if denoising > 1 {
+        println!("\nstarting denoising...");
+        render_data.median_filter(denoising, prog_interval);
+    }
+    println!("\nrender complete!");
     output.write_all(render_data.to_string().as_bytes()).unwrap();
     output.flush().unwrap();
 }

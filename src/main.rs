@@ -1,9 +1,9 @@
 use path_tracer::{vec3, camera, materials, geometry, hitable};
 
 fn main() {
-    let px_width = 200;
-    let px_height = 100;
-    let samples = 1;
+    let px_width = 400;
+    let px_height = 200;
+    let samples = 10;
 
     let look_from = vec3::Vec3::new(3.0, 2.0, 0.5);
     let look_at = vec3::Vec3::new(-2.0, 2.0, 0.0);
@@ -69,6 +69,7 @@ fn main() {
         camera,
         "output.ppm",
         Box::leak(default_mat),
-        1
+        1,
+        3
         );
 }
