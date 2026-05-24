@@ -20,7 +20,7 @@ fn main() {
     let metallic = Box::new(materials::Metal::new(vec3::Vec3::new(0.5, 0.5, 0.5), 0.0));
     let tri_mat = Box::new(materials::Lambertian::new(vec3::Vec3::new(1.0, 0.0, 0.0)));
 
-    let mut world: Vec<Box<dyn hitable::Hitable>> = Vec::new();
+    let mut world: Vec<Box<geometry::Triangle>> = Vec::new();
 
     let _cuboid = geometry::Cuboid::new_to_world(
         vec3::Vec3::new(-2.0, 1.0, -2.0),
