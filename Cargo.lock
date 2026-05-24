@@ -347,6 +347,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "path_tracer"
+version = "0.1.0"
+dependencies = [
+ "cuda-core",
+ "cuda-device",
+ "cuda-host",
+ "rand",
+]
+
+[[package]]
 name = "prettyplease"
 version = "0.2.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -430,16 +440,6 @@ checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 name = "reserved-oxide-symbols"
 version = "0.1.0"
 source = "git+https://github.com/NVlabs/cuda-oxide.git#c8b3103cb1ffe1664aa1458b467ebc2206d5d82a"
-
-[[package]]
-name = "rust-path-tracer"
-version = "0.1.0"
-dependencies = [
- "cuda-core",
- "cuda-device",
- "cuda-host",
- "rand",
-]
 
 [[package]]
 name = "rustc-hash"
