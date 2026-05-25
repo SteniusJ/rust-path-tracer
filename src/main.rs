@@ -14,13 +14,13 @@ fn main() {
     let aspect = px_width as f64 / px_height as f64;
     let camera = camera::Camera::new(look_from, look_at, v_up, fov, aspect, aperature, dist_to_focus);
 
-    let default_mat = Box::new(materials::Lambertian::new(vec3::Vec3::empty()));
-    let cuboid_mat = Box::new(materials::Lambertian::new(vec3::Vec3::new(0.5, 0.2, 0.2)));
-    let glass = Box::new(materials::Dielectric::new(1.5));
-    let metallic = Box::new(materials::Metal::new(vec3::Vec3::new(0.5, 0.5, 0.5), 0.0));
-    let tri_mat = Box::new(materials::Lambertian::new(vec3::Vec3::new(1.0, 0.0, 0.0)));
+    let default_mat = materials::Material::new_lambertian(vec3::Vec3::empty());
+    let cuboid_mat = materials::Material::new_lambertian(vec3::Vec3::new(0.5, 0.2, 0.2));
+    let glass = materials::Material::new_dielectric(1.5);
+    let metallic = materials::Metal::new_metal(vec3::Vec3::new(0.5, 0.5, 0.5), 0.0);
+    let tri_mat = materials::Material::new_lambertian(vec3::Vec3::new(1.0, 0.0, 0.0));
 
-    let mut world: Vec<Box<geometry::Triangle>> = Vec::new();
+    let mut world: Vec<geometry::Triangle> = Vec::new();
 
     let _cuboid = geometry::Cuboid::new_to_world(
         vec3::Vec3::new(-2.0, 1.0, -2.0),
@@ -31,7 +31,7 @@ fn main() {
         vec3::Vec3::new(-4.0, 1.0, -4.0),
         vec3::Vec3::new(-4.0, 3.0, -2.0),
         vec3::Vec3::new(-4.0, 3.0, -4.0),
-        Box::leak(cuboid_mat),
+        cuboid_mat,
         &mut world
         );
 
@@ -44,22 +44,22 @@ fn main() {
         vec3::Vec3::new(-200.0, -3.0, -200.0),
         vec3::Vec3::new(-200.0, 0.0, 200.0),
         vec3::Vec3::new(-200.0, 0.0, -200.0),
-        Box::leak(metallic),
+        metallic,
         &mut world
         );
 
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
-        Box::leak(glass),
+        glass,
         &mut world
         );
 
-    world.push(Box::new(geometry::Triangle::new(
+    world.push(geometry::Triangle::new(
                 vec3::Vec3::new(-2.0, 1.0, 4.0),
                 vec3::Vec3::new(-2.0, 1.0, 2.0),
                 vec3::Vec3::new(-2.0, 3.0, 3.0),
-                Box::leak(tri_mat)
-                )));
+                tri_mat
+                ));
 
     path_tracer::render(
         px_width,
@@ -68,7 +68,7 @@ fn main() {
         world,
         camera,
         "output.ppm",
-        Box::leak(default_mat),
+        default_mat,
         1,
         3
         );

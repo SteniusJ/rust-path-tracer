@@ -10,7 +10,7 @@ pub struct Triangle {
     pub vertice2: vec3::Vec3,
     pub vertice3: vec3::Vec3,
     pub normal: vec3::Vec3,
-    pub material: &'static dyn materials::Material,
+    pub material: materials::Material,
 }
 
 unsafe impl DeviceCopy for Triangle {}
@@ -31,7 +31,7 @@ impl Triangle {
      * 1/___________\2
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: &'static dyn materials::Material) -> Triangle {
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: materials::Material) -> Triangle {
         Triangle {
             vertice1: v1,
             vertice2: v2,
@@ -98,7 +98,7 @@ impl Cuboid {
      * 1/_______2/
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'static dyn materials::Material) -> (Cuboid, Vec<Triangle>) {
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material) -> (Cuboid, Vec<Triangle>) {
         let mut triangles: Vec<Triangle> = Vec::with_capacity(12);
         triangles.push(Triangle::new(v1, v2, v3, material));
         triangles.push(Triangle::new(v3, v2, v4, material));
@@ -120,12 +120,12 @@ impl Cuboid {
             triangles
         )
     } 
-    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: &'static dyn materials::Material, world: &mut Vec<Box<geometry::Triangle>>) -> Cuboid {
+    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material, world: &mut Vec<geometry::Triangle>) -> Cuboid {
         let cuboid = Cuboid::new(v1, v2, v3, v4, v5, v6, v7, v8, material);
 
         world.reserve(12);
         for tri in cuboid.1 {
-            world.push(Box::new(tri));
+            world.push(tri);
         }
 
         cuboid.0
@@ -141,7 +141,7 @@ impl ObjImport {
      * Constructs new Custom model from .obj wavefront file.
      * Doesn't auto triangulate, requires mesh to be pre triangulated.
      */
-    pub fn new(file_name: &str, material: &'static dyn materials::Material) -> (ObjImport, Vec<Triangle>) {
+    pub fn new(file_name: &str, material: materials::Material) -> (ObjImport, Vec<Triangle>) {
         let mut triangles: Vec<Triangle> = Vec::new();
         let mut import_file = File::open(file_name).unwrap();
         let mut file_contents = String::new();
@@ -191,12 +191,12 @@ impl ObjImport {
             triangles
         )
     }
-    pub fn new_to_world(file_name: &str, material: &'static dyn materials::Material, world: &mut Vec<Box<geometry::Triangle>>) -> ObjImport {
+    pub fn new_to_world(file_name: &str, material: materials::Material, world: &mut Vec<geometry::Triangle>) -> ObjImport {
         let import = ObjImport::new(file_name, material);
 
         world.reserve(import.1.len());
         for tri in import.1 {
-            world.push(Box::new(tri));
+            world.push(tri);
         }
 
         import.0

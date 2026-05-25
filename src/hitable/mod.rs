@@ -6,7 +6,7 @@ pub struct HitRecord {
     pub t: f64,
     pub p: vec3::Vec3,
     pub surface_normal: vec3::Vec3,
-    pub material: &'static dyn materials::Material,
+    pub material: materials::Material,
 }
 
 impl fmt::Debug for HitRecord {
@@ -16,7 +16,7 @@ impl fmt::Debug for HitRecord {
 }
 
 impl HitRecord {
-    pub fn empty(material: &'static dyn materials::Material) -> Self {
+    pub fn empty(material: materials::Material) -> Self {
         Self {
             t: f64::MIN,
             p: vec3::Vec3::empty(),

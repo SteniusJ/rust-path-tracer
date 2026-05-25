@@ -16,7 +16,7 @@ use std::io::prelude::*;
 use std::io;
 use rand::rngs::SmallRng;
 
-pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, default_mat: &'static dyn materials::Material, prog_interval: i64, denoising: u8) {
+pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, default_mat: materials::Material, prog_interval: i64, denoising: u8) {
     let mut progress = 0.0;
     let mut output = File::create(output_name).unwrap();
     let mut rng: SmallRng = rand::make_rng();
