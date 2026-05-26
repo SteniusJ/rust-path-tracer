@@ -16,6 +16,43 @@ use std::io::prelude::*;
 use std::io;
 use rand::rngs::SmallRng;
 
+#[cuda_module]
+mod kernels {
+    use super::*;
+
+    #[kernel]
+    fn render(tris: &[geometry::Triangle], randnr: &[f64], camera: camera::Camera, samples: u8, px_width: u16, px_height: u16, mut out: DisjointSlice<(u8, u8, u8)>) {
+        let idx = thread::index_1d();
+        let i = idx.get();
+        if let Some(out_elem) = out.get_mut(idx) {
+            let randnr = randnr[i];
+            let mut color = vec3::Vec3::empty();
+
+            let ix = i / px_width as usize;
+            let iy = i / px_height as usize;
+
+            for _ in 0..samples {
+                let u = (ix as f64 + randnr) / px_width as f64;
+                let v = (iy as f64 + randnr) / px_height as f64;
+
+                let ray = camera.get_ray(u, v, randnr);
+
+                color += get_color(&ray, tris, 50, materials::Material::new_lambertian(vec3::Vec3::empty()), randnr);
+            }
+
+            color /= samples as f64;
+            color = vec3::Vec3::new(color.x.sqrt(), color.y.sqrt(), color.z.sqrt());
+            let color = color.to_color();
+
+            *out_elem = (color.r, color.g, color.b);
+        }
+    }
+}
+
+fn get_color(ray: &ray::Ray, tris: &[geometry::Triangle], depth: u8, default_mat: materials::Material, randnr: f64) -> vec3::Vec3 {
+    vec3::Vec3::empty()
+}
+
 pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, default_mat: materials::Material, prog_interval: i64, denoising: u8) {
     let mut progress = 0.0;
     let mut output = File::create(output_name).unwrap();
