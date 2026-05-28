@@ -1,16 +1,18 @@
-use rand::RngExt;
-use rand::rngs::SmallRng;
+use cuda_device::device;
 
-pub fn randf(rng: &mut SmallRng) -> f64 {
-    rng.random_range(0.0..1.0)
+#[device]
+pub fn xor_shift(seed: &mut u32) -> u32 {
+    let mut x = *seed;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    *seed = x;
+    return x;
 }
 
-pub fn get_randnr_vec(len: usize, rng: &mut SmallRng) -> Vec<f64> {
-    let mut vec: Vec<f64> = Vec::with_capacity(len);
-    
-    for _ in 0..len {
-        vec.push(randf(rng));
-    }
+#[device]
+pub fn randf(seed: &mut u32) -> f64 {
+    let randnr = xor_shift(seed);
 
-    vec
+    randnr as f64 / 4294967296.0_f64
 }

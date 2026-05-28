@@ -1,6 +1,5 @@
 use crate::{vec3, ray, util};
 use std::f64::consts::PI;
-use rand::rngs::SmallRng;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
@@ -41,8 +40,8 @@ impl Camera {
      * Returns ray pointing from camera origin to given screen space coordinates.
      * Adds slight randomness to ray position.
      */
-    pub fn get_ray(&self, s: f64, t: f64, randnr: f64) -> ray::Ray {
-        let rd = self.lens_radius * random_in_unit_disk(randnr);
+    pub fn get_ray(&self, s: f64, t: f64, seed: &mut u32) -> ray::Ray {
+        let rd = self.lens_radius * random_in_unit_disk(seed);
         let offset = self.u * rd.x + self.v * rd.y;
 
         ray::Ray::new(self.origin + offset, self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset)
@@ -54,11 +53,11 @@ impl Camera {
  *
  * current implementation with randnr is a placeholder
  */
-fn random_in_unit_disk(randnr: f64) -> vec3::Vec3 {
-    let mut p = 2.0 * vec3::Vec3::new(randnr, randnr, 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
+fn random_in_unit_disk(seed: &mut u32) -> vec3::Vec3 {
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(seed), util::randf(seed), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
 
     while p.dot(&p) >= 1.0 {
-        p = 2.0 * vec3::Vec3::new(randnr, randnr, 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
+        p = 2.0 * vec3::Vec3::new(util::randf(seed), util::randf(seed), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
     }
     p
 }

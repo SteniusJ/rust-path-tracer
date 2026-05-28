@@ -1,5 +1,6 @@
 use crate::{ray, vec3, hitable, util};
-use rand::rngs::SmallRng;
+
+use cuda_device::device;
 
 /* 
  * Update materials to use enum instead of traits since GPU code can't handle those 
@@ -37,12 +38,13 @@ impl Material {
 /* 
  * CPU implementation of enum based scatter function
  */
-pub fn scatter(material: Material, ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+#[device]
+pub fn scatter(material: Material, ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
     match material {
-        Material::Lambertian { albedo } => lambertian_scatter(albedo, hit_record, attentuation, scattered, rng),
-        Material::Metal { albedo, fuzz } => metal_scatter(albedo, &fuzz, ray, hit_record, attentuation, scattered, rng),
-        Material::Dielectric { refraction_index } => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, rng),
-        Material::Normal => normal_scatter(hit_record, attentuation, scattered, rng)
+        Material::Lambertian { albedo } => lambertian_scatter(albedo, hit_record, attentuation, scattered, seed),
+        Material::Metal { albedo, fuzz } => metal_scatter(albedo, fuzz, ray, hit_record, attentuation, scattered, seed),
+        Material::Dielectric { refraction_index } => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, seed),
+        Material::Normal => normal_scatter(hit_record, attentuation, scattered, seed)
     }
 }
 
@@ -70,11 +72,11 @@ pub fn schlick(cosine: &f64, refraction_index: &f64) -> f64 {
     r0 + (1.0 - r0) * f64::powf(1.0 - cosine, 5.0)
 }
 
-pub fn random_in_unit_sphere(rng: &mut SmallRng) -> vec3::Vec3 {
-    let mut p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), util::randf(rng)) - vec3::Vec3::new(1.0, 1.0, 1.0);
+pub fn random_in_unit_sphere(seed: &mut u32) -> vec3::Vec3 {
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(seed), util::randf(seed), util::randf(seed)) - vec3::Vec3::new(1.0, 1.0, 1.0);
     
     while p.sqrt_len() >= 1.0 {
-        p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), util::randf(rng)) - vec3::Vec3::new(1.0, 1.0, 1.0);
+        p = 2.0 * vec3::Vec3::new(util::randf(seed), util::randf(seed), util::randf(seed)) - vec3::Vec3::new(1.0, 1.0, 1.0);
     }
 
     p
@@ -88,8 +90,8 @@ pub fn random_in_unit_sphere(rng: &mut SmallRng) -> vec3::Vec3 {
  * Lambertian material
  * Opaque Matte material
  */
-fn lambertian_scatter(albedo: vec3::Vec3, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
-    let target = rec.p + rec.surface_normal + random_in_unit_sphere(rng);
+fn lambertian_scatter(albedo: vec3::Vec3, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
+    let target = rec.p + rec.surface_normal + random_in_unit_sphere(seed);
     *scattered = ray::Ray::new(rec.p, target - rec.p);
     *attentuation = albedo;
     true
@@ -100,9 +102,9 @@ fn lambertian_scatter(albedo: vec3::Vec3, rec: &hitable::HitRecord, attentuation
  * Metallic. Fuzz is surface roughness, higher fuzz == rougher, lower fuzz == more polished.
  * 0.0 fuzz == mirror like perfect reflection.
  */
-fn metal_scatter(albedo: vec3::Vec3, fuzz: &f64, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+fn metal_scatter(albedo: vec3::Vec3, fuzz: f64, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
     let reflected = reflect(&r_in.direction.to_normalized(), &rec.surface_normal);
-    *scattered = ray::Ray::new(rec.p, reflected + fuzz * random_in_unit_sphere(rng));
+    *scattered = ray::Ray::new(rec.p, reflected + fuzz * random_in_unit_sphere(seed));
     *attentuation = albedo;
     return scattered.direction.dot(&rec.surface_normal) > 0.0;
 }
@@ -111,7 +113,7 @@ fn metal_scatter(albedo: vec3::Vec3, fuzz: &f64, r_in: &ray::Ray, rec: &hitable:
  * Dielectric material.
  * Glass like material. Accurate glass like material with refraction_index = 1.5.
  */
-fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
+fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
     let outward_normal: vec3::Vec3;
     let ni_over_nt: f64;
     let reflect_prob: f64;
@@ -137,7 +139,7 @@ fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::Hit
         reflect_prob = 1.0;
     }
 
-    if util::randf(rng) < reflect_prob {
+    if util::randf(seed) < reflect_prob {
         *scattered = ray::Ray::new(rec.p, reflected);
     } else {
         *scattered = ray::Ray::new(rec.p, refracted);
@@ -150,8 +152,8 @@ fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::Hit
  * Normal material.
  * Debug material for visualization of surface normals.
  */
-fn normal_scatter(rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, rng: &mut SmallRng) -> bool {
-    let target = rec.p + rec.surface_normal + random_in_unit_sphere(rng);
+fn normal_scatter(rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
+    let target = rec.p + rec.surface_normal + random_in_unit_sphere(seed);
     *scattered = ray::Ray::new(rec.p, target - rec.p);
     let mut normal_color = rec.surface_normal.to_normalized();
     normal_color.into_positive();

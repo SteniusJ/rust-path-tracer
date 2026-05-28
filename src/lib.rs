@@ -9,35 +9,33 @@ mod output;
 
 use cuda_device::{kernel, thread, DisjointSlice};
 use cuda_host::cuda_module;
-use cuda_core::{CudaContext, DeviceBuffer, LaunchConfig, DeviceCopy};
+use cuda_core::{CudaContext, DeviceBuffer, LaunchConfig};
 
 use std::fs::File;
-use std::io::prelude::*;
-use std::io;
-use rand::rngs::SmallRng;
 
 #[cuda_module]
 mod kernels {
     use super::*;
 
     #[kernel]
-    fn render(tris: &[geometry::Triangle], randnr: &[f64], camera: camera::Camera, samples: u8, px_width: u16, px_height: u16, mut out: DisjointSlice<(u8, u8, u8)>) {
+    pub fn render(tris: &[geometry::Triangle], camera: camera::Camera, samples: u8, px_width: u16, px_height: u16, mut out: DisjointSlice<(u8, u8, u8)>) {
         let idx = thread::index_1d();
         let i = idx.get();
+        let mut seed = i as u32 + 23712;
+
         if let Some(out_elem) = out.get_mut(idx) {
-            let randnr = randnr[i];
             let mut color = vec3::Vec3::empty();
 
             let ix = i / px_width as usize;
             let iy = i / px_height as usize;
 
             for _ in 0..samples {
-                let u = (ix as f64 + randnr) / px_width as f64;
-                let v = (iy as f64 + randnr) / px_height as f64;
+                let u = (ix as f64 + util::randf(&mut seed)) / px_width as f64;
+                let v = (iy as f64 + util::randf(&mut seed)) / px_height as f64;
 
-                let ray = camera.get_ray(u, v, randnr);
+                let ray = camera.get_ray(u, v, &mut seed);
 
-                color += get_color(&ray, tris, 50, materials::Material::new_lambertian(vec3::Vec3::empty()), randnr);
+                color += get_color(&ray, tris, 50, materials::Material::new_lambertian(vec3::Vec3::empty()), &mut seed);
             }
 
             color /= samples as f64;
@@ -49,56 +47,76 @@ mod kernels {
     }
 }
 
-fn get_color(ray: &ray::Ray, tris: &[geometry::Triangle], depth: u8, default_mat: materials::Material, randnr: f64) -> vec3::Vec3 {
-    vec3::Vec3::empty()
+fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle], default_mat: materials::Material) -> bool {
+    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
+    let mut hit = false;
+    let mut closest_t = t_max;
+
+    for tri in tris {
+        if tri.hit(ray, t_min, closest_t, &mut temp_rec) {
+            hit = true;
+            if closest_t > temp_rec.t {
+                closest_t = temp_rec.t;
+                *rec =  temp_rec.clone();
+            }
+        }
+    }
+
+    hit
 }
 
-pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, default_mat: materials::Material, prog_interval: i64, denoising: u8) {
-    let mut progress = 0.0;
-    let mut output = File::create(output_name).unwrap();
-    let mut rng: SmallRng = rand::make_rng();
+fn get_color(ray: &ray::Ray, tris: &[geometry::Triangle], depth: u8, default_mat: materials::Material, seed: &mut u32) -> vec3::Vec3 {
+    let mut hit_record: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
+
+    if check_hits(ray, 0.001, f64::MAX, &mut hit_record, tris, default_mat) {
+        let mut scattered = ray::Ray::empty();
+        let mut attentuation = vec3::Vec3::empty();
+
+        if depth < 50 && materials::scatter(hit_record.material, ray, &hit_record, &mut attentuation, &mut scattered, seed) {
+            return attentuation * get_color(&scattered, tris, depth + 1, default_mat, seed);
+        } else {
+            return vec3::Vec3::new(0.0, 0.0, 0.0);
+        }
+    } else {
+        let unit_direction = ray.direction.to_normalized();
+        let t = 0.5 * (unit_direction.y + 1.0);
+        let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+        return color;
+    }
+}
+
+pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, _default_mat: materials::Material, _prog_interval: i64, denoising: u8) {
+    let mut _progress = 0.0;
+    let mut _output = File::create(output_name).unwrap();
     // due to denoising removing the edges, we make the initial render bigger by the window
     // width(denoising)
     let px_width = px_width + denoising as u16;
     let px_height = px_height + denoising as u16;
-    let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
-    let pixels = px_width as usize * px_height as usize;
+    let mut _render_data = output::RenderPPM::new(px_width, px_height, 255);
+    let npixels = px_width as u32 * px_height as u32;
 
-    // CUDA rewrite
     let ctx = CudaContext::new(0).expect("Failed to create CUDA context");
     let stream = ctx.default_stream();
 
-    let randnr_vec = util::get_randnr_vec(world.len(), &mut rng);
-
     let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
-    let randnr_dev = DeviceBuffer::from_host(&stream, &randnr_vec).unwrap();
 
-    let out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, pixels).unwrap();
+    let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
 
-    /* IN THEORY:
-     *
-     * module
-     *      .render(
-     *          &stream,
-     *          LaunchConfig::for_num_elems(pixels),
-     *          &tris_dev,
-     *          &randnr_dev,
-     *          &mut out_dev,
-     *          camera,
-     *          samples
-     *          )
-     *      .expect("Kernel launch failed");
-     *
-     *  let out_host = DeviceBuffer::to_host_vec(&out_dev, &stream);
-     *  render_data.push_vec(out_host);
-     *
-     *  yada yada
-     */
+    let module = kernels::load(&ctx).expect("Failed top load embedded module");
+    module.
+        render(
+            &stream,
+            LaunchConfig::for_num_elems(npixels),
+            &tris_dev,
+            camera,
+            samples,
+            px_width,
+            px_height,
+            &mut out_dev
+            )
+        .expect("Kernel launch failed");
 
-    // need to generate a vector of random values since this cannot be done on the GPU
-    // vector of triangles into device vector
-    // empty vector on device of image dimensions size for color data
+    let out = out_dev.to_host_vec(&stream).unwrap();
 
-    // CUDA end
-
+    println!("{}, {}, {}", out[20].0, out[20].1, out[20].2);
 }

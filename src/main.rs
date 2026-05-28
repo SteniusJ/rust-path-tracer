@@ -1,4 +1,4 @@
-use path_tracer::{vec3, camera, materials, geometry, hitable};
+use path_tracer::{vec3, camera, materials, geometry};
 
 fn main() {
     let px_width = 400;
@@ -17,7 +17,7 @@ fn main() {
     let default_mat = materials::Material::new_lambertian(vec3::Vec3::empty());
     let cuboid_mat = materials::Material::new_lambertian(vec3::Vec3::new(0.5, 0.2, 0.2));
     let glass = materials::Material::new_dielectric(1.5);
-    let metallic = materials::Metal::new_metal(vec3::Vec3::new(0.5, 0.5, 0.5), 0.0);
+    let metallic = materials::Material::new_metal(vec3::Vec3::new(0.5, 0.5, 0.5), 0.0);
     let tri_mat = materials::Material::new_lambertian(vec3::Vec3::new(1.0, 0.0, 0.0));
 
     let mut world: Vec<geometry::Triangle> = Vec::new();
@@ -47,13 +47,13 @@ fn main() {
         metallic,
         &mut world
         );
-
+/*
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
         glass,
         &mut world
         );
-
+*/
     world.push(geometry::Triangle::new(
                 vec3::Vec3::new(-2.0, 1.0, 4.0),
                 vec3::Vec3::new(-2.0, 1.0, 2.0),
