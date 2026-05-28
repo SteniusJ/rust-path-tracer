@@ -16,7 +16,7 @@ fn main() {
 
     let default_mat = materials::Material::new_lambertian(vec3::Vec3::empty());
     let cuboid_mat = materials::Material::new_lambertian(vec3::Vec3::new(0.5, 0.2, 0.2));
-    let glass = materials::Material::new_dielectric(1.5);
+    let _glass = materials::Material::new_dielectric(1.5);
     let metallic = materials::Material::new_metal(vec3::Vec3::new(0.5, 0.5, 0.5), 0.0);
     let tri_mat = materials::Material::new_lambertian(vec3::Vec3::new(1.0, 0.0, 0.0));
 
