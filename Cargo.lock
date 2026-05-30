@@ -347,7 +347,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "path_tracer"
+name = "path-tracer"
 version = "0.1.0"
 dependencies = [
  "cuda-core",

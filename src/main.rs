@@ -1,4 +1,14 @@
-use path_tracer::{vec3, camera, materials, geometry};
+use cuda_core::CudaContext;
+
+pub mod geometry;
+pub mod camera;
+pub mod util;
+pub mod materials;
+pub mod vec3;
+pub mod hitable;
+pub mod ray;
+pub mod output;
+mod gpu;
 
 fn main() {
     let px_width = 400;
@@ -54,6 +64,7 @@ fn main() {
         &mut world
         );
 */
+
     world.push(geometry::Triangle::new(
                 vec3::Vec3::new(-2.0, 1.0, 4.0),
                 vec3::Vec3::new(-2.0, 1.0, 2.0),
@@ -61,7 +72,11 @@ fn main() {
                 tri_mat
                 ));
 
-    path_tracer::render(
+    let ctx = CudaContext::new(0).expect("Failed to create CUDA context");
+    let stream = ctx.default_stream();
+    let module = gpu::kernels::load(&ctx).expect("Failed to load module");
+
+    gpu::render(
         px_width,
         px_height,
         samples,
@@ -70,6 +85,8 @@ fn main() {
         "output.ppm",
         default_mat,
         1,
-        3
+        3,
+        module,
+        stream
         );
 }

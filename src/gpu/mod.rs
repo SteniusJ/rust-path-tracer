@@ -1,20 +1,14 @@
-pub mod vec3;
-pub mod ray;
-pub mod hitable;
-pub mod geometry;
-pub mod materials;
-pub mod camera;
-mod util;
-mod output;
+use crate::{geometry, camera, util, materials, vec3, hitable, ray, output};
 
 use cuda_device::{kernel, thread, DisjointSlice};
 use cuda_host::cuda_module;
-use cuda_core::{CudaContext, DeviceBuffer, LaunchConfig};
+use cuda_core::{DeviceBuffer, LaunchConfig, CudaStream};
 
 use std::fs::File;
+use std::sync::Arc;
 
 #[cuda_module]
-mod kernels {
+pub mod kernels {
     use super::*;
 
     #[kernel]
@@ -45,6 +39,48 @@ mod kernels {
             *out_elem = (color.r, color.g, color.b);
         }
     }
+}
+
+pub fn render(px_width: u16,
+    px_height: u16,
+    samples: u8,
+    world: Vec<geometry::Triangle>,
+    camera: camera::Camera,
+    output_name: &str,
+    _default_mat: materials::Material,
+    _prog_interval: i64,
+    denoising: u8,
+    module: kernels::LoadedModule,
+    stream: Arc<CudaStream>) {
+    let mut _progress = 0.0;
+    let mut _output = File::create(output_name).unwrap();
+    // due to denoising removing the edges, we make the initial render bigger by the window
+    // width(denoising)
+    let px_width = px_width + denoising as u16;
+    let px_height = px_height + denoising as u16;
+    let mut _render_data = output::RenderPPM::new(px_width, px_height, 255);
+    let npixels = px_width as u32 * px_height as u32;
+
+    let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
+
+    let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
+
+    module.
+        render(
+            &stream,
+            LaunchConfig::for_num_elems(npixels),
+            &tris_dev,
+            camera,
+            samples,
+            px_width,
+            px_height,
+            &mut out_dev
+            )
+        .expect("Kernel launch failed");
+
+    let out = out_dev.to_host_vec(&stream).unwrap();
+
+    println!("{}, {}, {}", out[20].0, out[20].1, out[20].2);
 }
 
 fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle], default_mat: materials::Material) -> bool {
@@ -83,40 +119,4 @@ fn get_color(ray: &ray::Ray, tris: &[geometry::Triangle], depth: u8, default_mat
         let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
         return color;
     }
-}
-
-pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, _default_mat: materials::Material, _prog_interval: i64, denoising: u8) {
-    let mut _progress = 0.0;
-    let mut _output = File::create(output_name).unwrap();
-    // due to denoising removing the edges, we make the initial render bigger by the window
-    // width(denoising)
-    let px_width = px_width + denoising as u16;
-    let px_height = px_height + denoising as u16;
-    let mut _render_data = output::RenderPPM::new(px_width, px_height, 255);
-    let npixels = px_width as u32 * px_height as u32;
-
-    let ctx = CudaContext::new(0).expect("Failed to create CUDA context");
-    let stream = ctx.default_stream();
-
-    let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
-
-    let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
-
-    let module = kernels::load(&ctx).expect("Failed top load embedded module");
-    module.
-        render(
-            &stream,
-            LaunchConfig::for_num_elems(npixels),
-            &tris_dev,
-            camera,
-            samples,
-            px_width,
-            px_height,
-            &mut out_dev
-            )
-        .expect("Kernel launch failed");
-
-    let out = out_dev.to_host_vec(&stream).unwrap();
-
-    println!("{}, {}, {}", out[20].0, out[20].1, out[20].2);
 }
