@@ -46,6 +46,58 @@ impl Camera {
 
         ray::Ray::new(self.origin + offset, self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset)
     }
+    /*
+     * For some reason current CUDA Oxide doesn't support structs with multiple
+     * fields as arguments in a kernel. Because of this the camera has to be converted into
+     * this convoluted tuple.
+     */
+    pub fn into_gpu_arg(self) -> (
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        f64
+        ) {
+        (
+            (self.origin.x, self.origin.y, self.origin.z),
+            (self.lower_left_corner.x, self.lower_left_corner.y, self.lower_left_corner.z),
+            (self.horizontal.x, self.horizontal.y, self.horizontal.z),
+            (self.vertical.x, self.vertical.y, self.vertical.z),
+            (self.u.x, self.u.y, self.u.z),
+            (self.v.x, self.v.y, self.v.z),
+            (self.w.x, self.w.y, self.w.z),
+            self.lens_radius
+        )
+    }
+    /*
+     * Converts tuple back to camera
+     */
+    pub fn from_gpu_arg(
+        arg: (
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            f64
+        )
+        ) -> Self {
+        Self {
+            origin: vec3::Vec3::new(arg.0.0, arg.0.1, arg.0.2),
+            lower_left_corner: vec3::Vec3::new(arg.1.0, arg.1.1, arg.1.2),
+            horizontal: vec3::Vec3::new(arg.2.0, arg.2.1, arg.2.2),
+            vertical: vec3::Vec3::new(arg.3.0, arg.3.1, arg.3.2),
+            u: vec3::Vec3::new(arg.4.0, arg.4.1, arg.4.2),
+            v: vec3::Vec3::new(arg.5.0, arg.5.1, arg.5.2),
+            w: vec3::Vec3::new(arg.6.0, arg.6.1, arg.6.2),
+            lens_radius: arg.7
+        }
+    }
 }
 
 /*

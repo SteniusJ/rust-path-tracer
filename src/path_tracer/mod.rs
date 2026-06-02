@@ -29,10 +29,27 @@ pub mod kernels {
     };
 
     #[kernel]
-    pub fn render(tris: &[geometry::Triangle], camera: camera::Camera, samples: u8, px_width: u16, px_height: u16, mut out: DisjointSlice<(u8, u8, u8)>) {
+    pub fn render(
+        tris: &[geometry::Triangle],
+        camera: (
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            f64
+            ),
+        samples: u8,
+        px_width: u16,
+        px_height: u16,
+        mut out: DisjointSlice<(u8, u8, u8)>
+        ) {
         let idx = thread::index_1d();
         let i = idx.get();
         let mut seed = i as u32 + 23712;
+        let camera = camera::Camera::from_gpu_arg(camera);
 
         if let Some(out_elem) = out.get_mut(idx) {
             let mut color = vec3::Vec3::empty();
@@ -93,7 +110,7 @@ pub fn render(
             &stream,
             LaunchConfig::for_num_elems(npixels),
             &tris_dev,
-            camera,
+            camera.into_gpu_arg(),
             samples,
             px_width,
             px_height,
@@ -126,7 +143,7 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitReco
 
 fn get_color(ray: &ray::Ray, tris: &[geometry::Triangle], depth: u8, default_mat: materials::Material, seed: &mut u32) -> vec3::Vec3 {
     let mut hit_record: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
-
+    
     if check_hits(ray, 0.001, f64::MAX, &mut hit_record, tris, default_mat) {
         let mut scattered = ray::Ray::empty();
         let mut attentuation = vec3::Vec3::empty();
