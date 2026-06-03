@@ -5,12 +5,14 @@ pub mod hitable;
 pub mod util;
 pub mod geometry;
 pub mod materials;
+pub mod output;
 
 use cuda_device::{kernel, thread, DisjointSlice, gpu_printf};
 use cuda_core::{DeviceBuffer, LaunchConfig, CudaStream};
 use cuda_host::cuda_module;
 
 use std::fs::File;
+use std::io::Write;
 use std::sync::Arc;
 
 #[cuda_module]
@@ -93,12 +95,12 @@ pub fn render(
     stream: Arc<CudaStream>
     ) {
     let mut _progress = 0.0;
-    let mut _output = File::create(output_name).unwrap();
+    let mut output = File::create(output_name).unwrap();
     // due to denoising removing the edges, we make the initial render bigger by the window
     // width(denoising)
     let px_width = px_width + denoising as u16;
     let px_height = px_height + denoising as u16;
-    //let mut _render_data = output::RenderPPM::new(px_width, px_height, 255);
+    let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
     let npixels = px_width as u32 * px_height as u32;
 
     let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
@@ -120,7 +122,8 @@ pub fn render(
 
     let out = out_dev.to_host_vec(&stream).unwrap();
 
-    println!("{}, {}, {}", out[20].0, out[20].1, out[20].2);
+    render_data.push_gpu_vec(out);
+    output.write_all(render_data.to_string().as_bytes()).unwrap();
 }
 
 fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle], default_mat: materials::Material) -> bool {
