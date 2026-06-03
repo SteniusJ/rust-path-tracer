@@ -151,7 +151,7 @@ fn get_color(ray: &ray::Ray, tris: &[geometry::Triangle], depth: u8, default_mat
         let mut scattered = ray::Ray::empty();
         let mut attentuation = vec3::Vec3::empty();
 
-        if depth < 50 && materials::scatter(hit_record.material, ray, &hit_record, &mut attentuation, &mut scattered, seed) {
+        if depth < 50 && materials::scatter(ray, &hit_record, &mut attentuation, &mut scattered, seed) {
             return attentuation * get_color(&scattered, tris, depth + 1, default_mat, seed);
         } else {
             return vec3::Vec3::new(0.0, 0.0, 0.0);

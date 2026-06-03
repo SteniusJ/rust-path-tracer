@@ -39,8 +39,8 @@ impl Material {
  * CPU implementation of enum based scatter function
  */
 #[device]
-pub fn scatter(material: Material, ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
-    match material {
+pub fn scatter(ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
+    match hit_record.material {
         Material::Lambertian { albedo } => lambertian_scatter(albedo, hit_record, attentuation, scattered, seed),
         Material::Metal { albedo, fuzz } => metal_scatter(albedo, fuzz, ray, hit_record, attentuation, scattered, seed),
         Material::Dielectric { refraction_index } => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, seed),
