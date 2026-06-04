@@ -69,7 +69,7 @@ pub fn schlick(cosine: &f64, refraction_index: &f64) -> f64 {
     let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
     let r0 = r0 * r0; // reassinging to avoid unnecessary mutables
 
-    r0 + (1.0 - r0) * util::pow_f64(1.0 - cosine, 5.0)
+    r0 + (1.0 - r0) * util::powi_f64(1.0 - cosine, 5)
 }
 
 pub fn random_in_unit_sphere(seed: &mut u32) -> vec3::Vec3 {
