@@ -146,8 +146,8 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitReco
 
 fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, default_mat: materials::Material, seed: &mut u32) -> vec3::Vec3 {
     let mut depth = 0;
-    let mut current_attentuation = vec3::Vec3::empty();
-    let mut current_ray = ray;
+    let mut attentuation = vec3::Vec3::empty();
+    let mut ray = ray;
 
     loop {
         if depth >= max_depth {
@@ -156,22 +156,22 @@ fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, default_
 
         let mut hit_record: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
 
-        if !check_hits(&current_ray, 0.001, f64::MAX, &mut hit_record, tris, default_mat) {
-            let unit_direction = current_ray.direction.to_normalized();
+        if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris, default_mat) {
+            let unit_direction = ray.direction.to_normalized();
             let t = 0.5 * (unit_direction.y + 1.0);
             let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
             return color;
         }
 
         let mut scattered = ray::Ray::empty();
-        let mut attentuation = vec3::Vec3::empty();
+        let mut loop_attentuation = vec3::Vec3::empty();
 
-        if !materials::scatter(&current_ray, &hit_record, &mut attentuation, &mut scattered, seed) {
+        if !materials::scatter(&ray, &hit_record, &mut loop_attentuation, &mut scattered, seed) {
             return vec3::Vec3::empty();
         }
 
-        current_attentuation = current_attentuation * attentuation;
-        current_ray = scattered;
+        attentuation = attentuation * loop_attentuation;
+        ray = scattered;
         depth += 1;
     }
 }
