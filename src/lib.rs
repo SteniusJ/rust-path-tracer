@@ -74,6 +74,9 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
     let pixels = px_width as usize * px_height as usize;
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
 
+    // Simulating breaking down camera into gpu arg and rebuilding
+    let camera = camera::Camera::from_gpu_arg(camera.into_gpu_arg());
+
     for px in 0..pixels {
         let j = px_height as usize - (px / px_width as usize);
         let i = px - (px / px_width as usize * px_width as usize);
@@ -90,7 +93,11 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
 
         color /= samples as f64;
         // gamma correction
-        color = vec3::Vec3::new(color.x.sqrt(), color.y.sqrt(), color.z.sqrt());
+        color = vec3::Vec3::new(
+            util::sqrt_f64(color.x),
+            util::sqrt_f64(color.y),
+            util::sqrt_f64(color.z)
+            );
         render_data.push(color.to_color());
 
         progress += 100.0 / pixels as f64;

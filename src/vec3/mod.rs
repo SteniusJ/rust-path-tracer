@@ -1,6 +1,8 @@
 use std::ops;
 use std::fmt;
 
+use crate::util;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Vec3 {
     pub x: f64,
@@ -16,7 +18,7 @@ impl Vec3 {
         Vec3 { x: 0.0, y: 0.0, z: 0.0 }
     }
     pub fn len(&self) -> f64 {
-        f64::sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
+        util::sqrt_f64(self.x * self.x + self.y * self.y + self.z * self.z)
     }
     pub fn sqrt_len(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
