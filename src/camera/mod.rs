@@ -41,8 +41,8 @@ impl Camera {
      * Returns ray pointing from camera origin to given screen space coordinates.
      * Adds slight randomness to ray position.
      */
-    pub fn get_ray(&self, s: f64, t: f64, rng: &mut SmallRng) -> ray::Ray {
-        let rd = self.lens_radius * random_in_unit_disk(rng);
+    pub fn get_ray(&self, s: f64, t: f64, seed: &mut u32) -> ray::Ray {
+        let rd = self.lens_radius * random_in_unit_disk(seed);
         let offset = self.u * rd.x + self.v * rd.y;
 
         ray::Ray::new(self.origin + offset, self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin - offset)
@@ -52,11 +52,11 @@ impl Camera {
 /*
  * Returns random Vec3 Vec3(0.0-1.0, 0.0-1.0, 0.0)
  */
-fn random_in_unit_disk(rng: &mut SmallRng) -> vec3::Vec3 {
-    let mut p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
+fn random_in_unit_disk(seed: &mut u32) -> vec3::Vec3 {
+    let mut p = 2.0 * vec3::Vec3::new(util::randf(seed), util::randf(seed), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
 
     while p.dot(&p) >= 1.0 {
-        p = 2.0 * vec3::Vec3::new(util::randf(rng), util::randf(rng), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
+        p = 2.0 * vec3::Vec3::new(util::randf(seed), util::randf(seed), 0.0) - vec3::Vec3::new(1.0, 1.0, 0.0);
     }
     p
 }
