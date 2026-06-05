@@ -10,7 +10,8 @@ pub enum Material {
     Lambertian { albedo: vec3::Vec3 },
     Metal { albedo: vec3::Vec3, fuzz: f64 },
     Dielectric { refraction_index: f64 },
-    Normal
+    Normal,
+    NONE
 }
 
 impl Material {
@@ -33,6 +34,9 @@ impl Material {
         };
         Material::Metal { albedo, fuzz }
     }
+    pub fn new_none() -> Material {
+        Material::NONE
+    }
 }
 
 /* 
@@ -44,7 +48,8 @@ pub fn scatter(ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &m
         Material::Lambertian { albedo } => lambertian_scatter(albedo, hit_record, attentuation, scattered, seed),
         Material::Metal { albedo, fuzz } => metal_scatter(albedo, fuzz, ray, hit_record, attentuation, scattered, seed),
         Material::Dielectric { refraction_index } => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, seed),
-        Material::Normal => normal_scatter(hit_record, attentuation, scattered, seed)
+        Material::Normal => normal_scatter(hit_record, attentuation, scattered, seed),
+        Material::NONE => false,
     }
 }
 

@@ -50,11 +50,11 @@ pub mod kernels {
         ) {
         let idx = thread::index_1d();
         let i = idx.get();
-        let mut seed = i as u32 + 23712;
-        let camera = camera::Camera::from_gpu_arg(camera);
 
         if let Some(out_elem) = out.get_mut(idx) {
             let mut color = vec3::Vec3::empty();
+            let mut seed = i as u32 + 23712;
+            let camera = camera::Camera::from_gpu_arg(camera);
 
             let j = px_height as usize - (i / px_width as usize);
             let i = i - (i / px_width as usize * px_width as usize);
@@ -62,10 +62,8 @@ pub mod kernels {
             for _ in 0..samples {
                 let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
                 let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
-
                 let ray = camera.get_ray(u, v, &mut seed);
-
-                color += get_color(ray, tris, 50, materials::Material::new_lambertian(vec3::Vec3::empty()), &mut seed);
+                color += get_color(ray, tris, 50, &mut seed);
             }
 
             color /= samples as f64;
@@ -126,8 +124,8 @@ pub fn render(
     output.write_all(render_data.to_string().as_bytes()).unwrap();
 }
 
-fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle], default_mat: materials::Material) -> bool {
-    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
+fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle]) -> bool {
+    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty();
     let mut hit = false;
     let mut closest_t = t_max;
 
@@ -144,13 +142,13 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitReco
     hit
 }
 
-fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, default_mat: materials::Material, seed: &mut u32) -> vec3::Vec3 {
+fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
     let mut depth = 0;
     let mut attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
     let mut ray = ray;
 
     loop {
-        let mut hit_record = hitable::HitRecord::empty(default_mat);
+        let mut hit_record = hitable::HitRecord::empty();
         let mut loop_attentuation = vec3::Vec3::empty();
         let mut scattered = ray::Ray::empty();
 
@@ -160,7 +158,7 @@ fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, default_
         }
 
         // Ray didn't hit anything, loop ends
-        if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris, default_mat) {
+        if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris) {
             let unit_direction = ray.direction.to_normalized();
             let t = 0.5 * (unit_direction.y + 1.0);
             let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);

@@ -16,12 +16,12 @@ impl fmt::Debug for HitRecord {
 }
 
 impl HitRecord {
-    pub fn empty(material: materials::Material) -> Self {
+    pub fn empty() -> Self {
         Self {
             t: f64::MIN,
             p: vec3::Vec3::empty(),
             surface_normal: vec3::Vec3::empty(),
-            material,
+            material: materials::Material::new_none()
         }
     }
 }
