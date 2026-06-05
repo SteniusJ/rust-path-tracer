@@ -73,7 +73,6 @@ pub mod kernels {
                 util::sqrt_f64(color.z)
                 );
             let color = color.to_color();
-
             *out_elem = (color.r, color.g, color.b);
         }
     }
@@ -120,6 +119,12 @@ pub fn render(
     let out = out_dev.to_host_vec(&stream).unwrap();
 
     render_data.push_gpu_vec(out);
+
+    if denoising > 1 {
+        println!("\nstarting denoising...");
+        render_data.median_filter(denoising, 1);
+    }
+
     output.write_all(render_data.to_string().as_bytes()).unwrap();
 }
 
@@ -133,7 +138,7 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitReco
             hit = true;
             if closest_t > temp_rec.t {
                 closest_t = temp_rec.t;
-                *rec =  temp_rec.clone();
+                *rec = temp_rec.clone();
             }
         }
     }
