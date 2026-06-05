@@ -25,6 +25,14 @@ impl RenderPPM {
         self.pixels.push(PixelData8::new(color.r, color.g, color.b));
     }
     /*
+     * Push gpu generated vector
+     */
+    pub fn push_gpu_vec(&mut self, pixels: Vec<(u8, u8, u8)>) {
+        for (r, g, b) in pixels {
+            self.pixels.push(PixelData8::new(r, g, b));
+        }
+    }
+    /*
      * Returns String containing complete ppm file.
      */
     pub fn to_string(&self) -> String {

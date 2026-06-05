@@ -76,6 +76,7 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
 
     // Simulating breaking down camera into gpu arg and rebuilding
     let camera = camera::Camera::from_gpu_arg(camera.into_gpu_arg());
+    let mut gpu_sim_out: Vec<(u8, u8, u8)> = Vec::with_capacity(pixels);
 
     for px in 0..pixels {
         let j = px_height as usize - (px / px_width as usize);
@@ -98,7 +99,12 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
             util::sqrt_f64(color.y),
             util::sqrt_f64(color.z)
             );
-        render_data.push(color.to_color());
+        let color = color.to_color();
+        gpu_sim_out.push((
+                color.r,
+                color.g,
+                color.b
+                ));
 
         progress += 100.0 / pixels as f64;
         if progress as i64 % prog_interval == 0 {
@@ -106,6 +112,7 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
             io::stdout().flush().unwrap();
         }
     }
+    render_data.push_gpu_vec(gpu_sim_out);
 
     if denoising > 1 {
         println!("\nstarting denoising...");
