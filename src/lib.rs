@@ -58,36 +58,32 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<Box<dyn hit
     // width(denoising)
     let px_width = px_width + denoising as u16;
     let px_height = px_height + denoising as u16;
+    let pixels = px_width as usize * px_height as usize;
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
 
-    let mut j = px_height.clone();
-    while j >= 1 {
-        let mut i = 0;
-        while i < px_width {
-            let mut color = vec3::Vec3::empty();
+    for px in 0..pixels {
+        let j = px_height as usize - (px / px_width as usize);
+        let i = px - (px / px_width as usize * px_width as usize);
 
-            for _ in 0..samples {
-                let u = (i as f64 + util::randf(&mut rng)) / px_width as f64;
-                let v = (j as f64 + util::randf(&mut rng)) / px_height as f64;
-                let ray = camera.get_ray(u, v, &mut rng);
-                color += get_color(&ray, &world, 0, default_mat, &mut rng);
-            }
+        let mut color = vec3::Vec3::empty();
 
-            color /= samples as f64;
-            // gamma correction
-            color = vec3::Vec3::new(color.x.sqrt(), color.y.sqrt(), color.z.sqrt());
-            render_data.push(color.to_color());
-
-            i += 1;
+        for _ in 0..samples {
+            let u = (i as f64 + util::randf(&mut rng)) / px_width as f64;
+            let v = (j as f64 + util::randf(&mut rng)) / px_height as f64;
+            let ray = camera.get_ray(u, v, &mut rng);
+            color += get_color(&ray, &world, 0, default_mat, &mut rng);
         }
 
-        progress += 100.0 / px_height as f64;
+        color /= samples as f64;
+        // gamma correction
+        color = vec3::Vec3::new(color.x.sqrt(), color.y.sqrt(), color.z.sqrt());
+        render_data.push(color.to_color());
+
+        progress += 100.0 / pixels as f64;
         if progress as i64 % prog_interval == 0 {
             print!("\rrender progress: {progress:.2}%");
             io::stdout().flush().unwrap();
         }
-
-        j -= 1;
     }
 
     if denoising > 1 {
