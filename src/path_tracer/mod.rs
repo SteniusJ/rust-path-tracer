@@ -56,12 +56,12 @@ pub mod kernels {
         if let Some(out_elem) = out.get_mut(idx) {
             let mut color = vec3::Vec3::empty();
 
-            let ix = i / px_width as usize;
-            let iy = i / px_height as usize;
+            let j = px_height as usize - (i / px_width as usize);
+            let i = i - (i / px_width as usize * px_width as usize);
 
             for _ in 0..samples {
-                let u = (ix as f64 + util::randf(&mut seed)) / px_width as f64;
-                let v = (iy as f64 + util::randf(&mut seed)) / px_height as f64;
+                let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
+                let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
 
                 let ray = camera.get_ray(u, v, &mut seed);
 
