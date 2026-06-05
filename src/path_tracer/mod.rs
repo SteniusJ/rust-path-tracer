@@ -22,7 +22,6 @@ pub mod kernels {
         vec3,
         util,
         geometry,
-        materials,
         kernel,
         thread,
         DisjointSlice,
@@ -46,6 +45,7 @@ pub mod kernels {
         samples: u8,
         px_width: u16,
         px_height: u16,
+        depth: u8,
         mut out: DisjointSlice<(u8, u8, u8)>
         ) {
         let idx = thread::index_1d();
@@ -63,7 +63,7 @@ pub mod kernels {
                 let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
                 let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
                 let ray = camera.get_ray(u, v, &mut seed);
-                color += get_color(ray, tris, 50, &mut seed);
+                color += get_color(ray, tris, depth, &mut seed);
             }
 
             color /= samples as f64;
@@ -83,16 +83,14 @@ pub fn render(
     px_width: u16,
     px_height: u16,
     samples: u8,
+    depth: u8,
     world: Vec<geometry::Triangle>,
     camera: camera::Camera,
     output_name: &str,
-    _default_mat: materials::Material,
-    _prog_interval: i64,
     denoising: u8,
     module: kernels::LoadedModule,
     stream: Arc<CudaStream>
     ) {
-    let mut _progress = 0.0;
     let mut output = File::create(output_name).unwrap();
     // due to denoising removing the edges, we make the initial render bigger by the window
     // width(denoising)
@@ -114,6 +112,7 @@ pub fn render(
             samples,
             px_width,
             px_height,
+            depth,
             &mut out_dev
             )
         .expect("Kernel launch failed");

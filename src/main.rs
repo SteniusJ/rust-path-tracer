@@ -80,11 +80,10 @@ fn main() {
         px_width,
         px_height,
         samples,
+        50,
         world,
         camera,
         "output.ppm",
-        default_mat,
-        1,
         3,
         module,
         stream
