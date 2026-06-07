@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Read;
 
 use cuda_core::DeviceCopy;
+use cuda_device::gpu_printf;
 
 #[derive(Clone, Copy)]
 pub struct Triangle {
@@ -60,7 +61,8 @@ impl Triangle {
         let edge_1_3 = self.vertice1 - self.vertice3;
         let edge_int = self.vertice1 - int_point;
 
-        let denominator = (edge_1_2.dot(&edge_1_2) * edge_1_3.dot(&edge_1_3)) - (edge_1_2.dot(&edge_1_3) * edge_1_2.dot(&edge_1_3));
+        let denominator = edge_1_2.cross(&edge_1_3).dot(&edge_1_2.cross(&edge_1_3));
+
         let u = ((edge_1_2.dot(&edge_int) * edge_1_3.dot(&edge_1_3)) - (edge_1_2.dot(&edge_1_3) * edge_1_3.dot(&edge_int))) / denominator;
         let v = ((edge_1_2.dot(&edge_1_2) * edge_1_3.dot(&edge_int)) - (edge_1_2.dot(&edge_1_3) * edge_1_2.dot(&edge_int))) / denominator;
 
