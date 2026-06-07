@@ -24,7 +24,6 @@ fn main() {
     
     let camera = Camera::new(look_from, look_at, v_up, fov, aspect, aperature, dist_to_focus);
 
-    let default_mat = Material::new_lambertian(Vec3::empty());
     let cuboid_mat = Material::new_lambertian(Vec3::new(0.5, 0.2, 0.2));
     let _glass = Material::new_dielectric(1.5);
     let metallic = Material::new_metal(Vec3::new(0.5, 0.5, 0.5), 0.0);
