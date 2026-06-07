@@ -26,7 +26,10 @@ pub mod kernels {
         thread,
         DisjointSlice,
         gpu_printf,
-        get_color
+        get_color,
+        check_hits,
+        hitable,
+        materials
     };
 
     #[kernel]
@@ -46,7 +49,7 @@ pub mod kernels {
         px_width: u16,
         px_height: u16,
         depth: u8,
-        mut out: DisjointSlice<((f64, f64, f64), (f64, f64, f64))>
+        mut out: DisjointSlice<(f64, (f64, f64, f64), (f64, f64, f64), u8)>
         ) {
         let idx = thread::index_1d();
         let i = idx.get();
@@ -63,9 +66,33 @@ pub mod kernels {
                 let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
                 let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
                 let ray = camera.get_ray(u, v, &mut seed);
-                let org = ray.origin;
-                let dir = ray.direction;
-                *out_elem = ((org.x, org.y, org.z), (dir.x, dir.y, dir.z));
+                let mut hit_rec = hitable::HitRecord::empty();
+
+                check_hits(&ray, 0.001, f64::MAX, &mut hit_rec, tris);
+
+                let mat_id: u8 = match hit_rec.material {
+                    materials::Material::Lambertian { albedo } => 0,
+                    materials::Material::Metal { albedo, fuzz } => 1,
+                    materials::Material::Dielectric { refraction_index } => 2,
+                    materials::Material::Normal => 3,
+                    materials::Material::NONE => 4,
+                };
+
+                *out_elem = (
+                    hit_rec.t,
+                    (
+                        hit_rec.p.x,
+                        hit_rec.p.y,
+                        hit_rec.p.z
+                    ),
+                    (
+                        hit_rec.surface_normal.x,
+                        hit_rec.surface_normal.y,
+                        hit_rec.surface_normal.z
+                    ),
+                    mat_id
+                    );
+
                 //color += get_color(ray, tris, depth, &mut seed);
             }
 /*
@@ -94,7 +121,7 @@ pub fn render(
     module: kernels::LoadedModule,
     stream: Arc<CudaStream>
     ) {
-    let mut output = File::create("gpu_rays.txt").unwrap();
+    let mut output = File::create(output_name).unwrap();
     // due to denoising removing the edges, we make the initial render bigger by the window
     // width(denoising)
     let px_width = px_width + denoising as u16;
@@ -104,7 +131,7 @@ pub fn render(
 
     let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
 
-    let mut out_dev = DeviceBuffer::<((f64, f64, f64), (f64, f64, f64))>::zeroed(&stream, npixels as usize).unwrap();
+    let mut out_dev = DeviceBuffer::<(f64, (f64, f64, f64), (f64, f64, f64), u8)>::zeroed(&stream, npixels as usize).unwrap();
 
     module.
         render(
@@ -121,9 +148,6 @@ pub fn render(
         .expect("Kernel launch failed");
 
     let out = out_dev.to_host_vec(&stream).unwrap();
-
-    output.write_all(format!("{out:?}").as_bytes()).unwrap();
-
 /*
     render_data.push_gpu_vec(out);
 
@@ -131,9 +155,8 @@ pub fn render(
         println!("\nstarting denoising...");
         render_data.median_filter(denoising, 1);
     }
-
-    output.write_all(render_data.to_string().as_bytes()).unwrap();
 */
+    output.write_all(format!("{out:?}").as_bytes()).unwrap();
 }
 
 fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle]) -> bool {

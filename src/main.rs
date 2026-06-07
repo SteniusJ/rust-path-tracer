@@ -78,11 +78,11 @@ fn main() {
     path_tracer::render(
         px_width,
         px_height,
-        samples,
+        1,
         50,
         world,
         camera,
-        "output.ppm",
+        "gpu_hitrecords.txt",
         3,
         module,
         stream
