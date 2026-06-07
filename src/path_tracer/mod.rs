@@ -46,7 +46,7 @@ pub mod kernels {
         px_width: u16,
         px_height: u16,
         depth: u8,
-        mut out: DisjointSlice<(u8, u8, u8)>
+        mut out: DisjointSlice<((f64, f64, f64), (f64, f64, f64))>
         ) {
         let idx = thread::index_1d();
         let i = idx.get();
@@ -63,9 +63,12 @@ pub mod kernels {
                 let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
                 let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
                 let ray = camera.get_ray(u, v, &mut seed);
-                color += get_color(ray, tris, depth, &mut seed);
+                let org = ray.origin;
+                let dir = ray.direction;
+                *out_elem = ((org.x, org.y, org.z), (dir.x, dir.y, dir.z));
+                //color += get_color(ray, tris, depth, &mut seed);
             }
-
+/*
             color /= samples as f64;
             color = vec3::Vec3::new(
                 util::sqrt_f64(color.x),
@@ -74,6 +77,7 @@ pub mod kernels {
                 );
             let color = color.to_color();
             *out_elem = (color.r, color.g, color.b);
+*/
         }
     }
 }
@@ -90,7 +94,7 @@ pub fn render(
     module: kernels::LoadedModule,
     stream: Arc<CudaStream>
     ) {
-    let mut output = File::create(output_name).unwrap();
+    let mut output = File::create("gpu_rays.txt").unwrap();
     // due to denoising removing the edges, we make the initial render bigger by the window
     // width(denoising)
     let px_width = px_width + denoising as u16;
@@ -100,7 +104,7 @@ pub fn render(
 
     let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
 
-    let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
+    let mut out_dev = DeviceBuffer::<((f64, f64, f64), (f64, f64, f64))>::zeroed(&stream, npixels as usize).unwrap();
 
     module.
         render(
@@ -118,6 +122,9 @@ pub fn render(
 
     let out = out_dev.to_host_vec(&stream).unwrap();
 
+    output.write_all(format!("{out:?}").as_bytes()).unwrap();
+
+/*
     render_data.push_gpu_vec(out);
 
     if denoising > 1 {
@@ -126,6 +133,7 @@ pub fn render(
     }
 
     output.write_all(render_data.to_string().as_bytes()).unwrap();
+*/
 }
 
 fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle]) -> bool {
