@@ -1,5 +1,6 @@
 use crate::path_tracer::vec3;
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Ray {
     pub origin: vec3::Vec3,

@@ -3,8 +3,8 @@ use std::fs::File;
 use std::io::Read;
 
 use cuda_core::DeviceCopy;
-use cuda_device::gpu_printf;
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Triangle {
     pub vertice1: vec3::Vec3,
