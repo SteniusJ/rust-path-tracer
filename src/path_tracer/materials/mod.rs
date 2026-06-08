@@ -7,6 +7,7 @@ use cuda_core::DeviceCopy;
  * Update materials to use enum instead of traits since GPU code can't handle those 
  * enum turned out to be bad and poisoned my triangle data
  */
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub enum Material {
     Lambertian { albedo: vec3::Vec3 },

@@ -1,6 +1,7 @@
 use crate::path_tracer::{vec3, ray, util};
 use std::f64::consts::PI;
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Camera {
     pub origin: vec3::Vec3,
