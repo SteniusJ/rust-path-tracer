@@ -21,7 +21,7 @@ pub mod kernels {
         camera,
         vec3,
         util,
-        geometry,
+        materials,
         kernel,
         thread,
         DisjointSlice,
@@ -31,7 +31,13 @@ pub mod kernels {
 
     #[kernel]
     pub fn render(
-        tris: &[geometry::Triangle],
+        tris: &[(
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            (f64, f64, f64),
+            materials::Material
+            )],
         camera: (
             (f64, f64, f64),
             (f64, f64, f64),
@@ -98,7 +104,7 @@ pub fn render(
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
     let npixels = px_width as u32 * px_height as u32;
 
-    let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
+    let tris_dev = DeviceBuffer::from_host(&stream, &flatten_world(world)).unwrap();
 
     let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
 
@@ -128,12 +134,47 @@ pub fn render(
     output.write_all(render_data.to_string().as_bytes()).unwrap();
 }
 
-fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle]) -> bool {
+fn flatten_world(world: Vec<geometry::Triangle>) -> Vec<(
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    materials::Material
+)> {
+    let mut flattened_world: Vec<(
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    materials::Material
+    )> = Vec::with_capacity(world.len());
+
+    for tri in world {
+        flattened_world.push(tri.flatten());
+    }
+
+    flattened_world
+}
+
+fn check_hits(
+    ray: &ray::Ray,
+    t_min: f64,
+    t_max: f64,
+    rec: &mut hitable::HitRecord,
+    tris: &[(
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        materials::Material
+    )]
+) -> bool {
     let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty();
     let mut hit = false;
     let mut closest_t = t_max;
 
     for tri in tris {
+        let tri = geometry::Triangle::from_flattened(*tri);
         if tri.hit(ray, t_min, closest_t, &mut temp_rec) {
             hit = true;
             if closest_t > temp_rec.t {
@@ -146,7 +187,18 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitReco
     hit
 }
 
-fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
+fn get_color(
+    ray: ray::Ray,
+    tris: &[(
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        materials::Material
+    )],
+    max_depth: u8,
+    seed: &mut u32
+) -> vec3::Vec3 {
     let mut depth = 0;
     let mut attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
     let mut ray = ray;

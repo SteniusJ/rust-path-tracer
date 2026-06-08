@@ -2,9 +2,6 @@ use crate::path_tracer::{vec3, hitable, materials, ray};
 use std::fs::File;
 use std::io::Read;
 
-use cuda_core::DeviceCopy;
-use cuda_device::gpu_printf;
-
 #[derive(Clone, Copy)]
 pub struct Triangle {
     pub vertice1: vec3::Vec3,
@@ -13,8 +10,6 @@ pub struct Triangle {
     pub normal: vec3::Vec3,
     pub material: materials::Material,
 }
-
-unsafe impl DeviceCopy for Triangle {}
 
 impl Triangle {
     /*
@@ -77,6 +72,36 @@ impl Triangle {
         
         false
 
+    }
+    pub fn flatten(&self) -> (
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        materials::Material
+    ) {
+        (
+            (self.vertice1.x, self.vertice1.y, self.vertice1.z),
+            (self.vertice2.x, self.vertice2.y, self.vertice2.z),
+            (self.vertice3.x, self.vertice3.y, self.vertice3.z),
+            (self.normal.x, self.normal.y, self.normal.z),
+            self.material
+        )
+    }
+    pub fn from_flattened(flattened: (
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        (f64, f64, f64),
+        materials::Material
+    )) -> Self {
+        Self {
+            vertice1: vec3::Vec3::new(flattened.0.0, flattened.0.1, flattened.0.2),
+            vertice2: vec3::Vec3::new(flattened.1.0, flattened.1.1, flattened.1.2),
+            vertice3: vec3::Vec3::new(flattened.2.0, flattened.2.1, flattened.2.2),
+            normal: vec3::Vec3::new(flattened.3.0, flattened.3.1, flattened.3.2),
+            material: flattened.4
+        }
     }
 }
 

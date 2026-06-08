@@ -1,6 +1,7 @@
 use crate::path_tracer::{ray, vec3, hitable, util};
 
 use cuda_device::device;
+use cuda_core::DeviceCopy;
 
 /* 
  * Update materials to use enum instead of traits since GPU code can't handle those 
@@ -13,6 +14,8 @@ pub enum Material {
     Normal,
     NONE
 }
+
+unsafe impl DeviceCopy for Material {}
 
 impl Material {
     pub fn new_lambertian(albedo: vec3::Vec3) -> Material {
