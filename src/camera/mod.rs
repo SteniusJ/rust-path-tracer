@@ -1,6 +1,7 @@
 use crate::{vec3, ray, util};
 use std::f64::consts::PI;
 
+#[repr(C)]
 #[derive(Debug)]
 pub struct Camera {
     pub origin: vec3::Vec3,

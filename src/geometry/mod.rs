@@ -2,6 +2,7 @@ use crate::{vec3, hitable, materials, ray};
 use std::fs::File;
 use std::io::Read;
 
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Triangle {
     pub vertice1: vec3::Vec3,

@@ -1,6 +1,7 @@
 use crate::{vec3, materials};
 use std::fmt;
 
+#[repr(C)]
 #[derive(Clone)]
 pub struct HitRecord {
     pub t: f64,

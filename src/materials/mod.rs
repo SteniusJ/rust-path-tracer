@@ -3,6 +3,7 @@ use crate::{ray, vec3, hitable, util};
 /* 
  * Update materials to use enum instead of traits since GPU code can't handle those 
  */
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub enum Material {
     Lambertian { albedo: vec3::Vec3 },
