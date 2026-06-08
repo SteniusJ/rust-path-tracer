@@ -21,7 +21,6 @@ pub mod kernels {
         camera,
         vec3,
         util,
-        materials,
         kernel,
         thread,
         DisjointSlice,
@@ -36,7 +35,7 @@ pub mod kernels {
             (f64, f64, f64),
             (f64, f64, f64),
             (f64, f64, f64),
-            materials::Material
+            (u8, (f64, f64, f64), f64, f64)
             )],
         camera: (
             (f64, f64, f64),
@@ -139,14 +138,14 @@ fn flatten_world(world: Vec<geometry::Triangle>) -> Vec<(
     (f64, f64, f64),
     (f64, f64, f64),
     (f64, f64, f64),
-    materials::Material
+    (u8, (f64, f64, f64), f64, f64)
 )> {
     let mut flattened_world: Vec<(
     (f64, f64, f64),
     (f64, f64, f64),
     (f64, f64, f64),
     (f64, f64, f64),
-    materials::Material
+    (u8, (f64, f64, f64), f64, f64)
     )> = Vec::with_capacity(world.len());
 
     for tri in world {
@@ -166,7 +165,7 @@ fn check_hits(
         (f64, f64, f64),
         (f64, f64, f64),
         (f64, f64, f64),
-        materials::Material
+        (u8, (f64, f64, f64), f64, f64)
     )]
 ) -> bool {
     let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty();
@@ -194,7 +193,7 @@ fn get_color(
         (f64, f64, f64),
         (f64, f64, f64),
         (f64, f64, f64),
-        materials::Material
+        (u8, (f64, f64, f64), f64, f64)
     )],
     max_depth: u8,
     seed: &mut u32

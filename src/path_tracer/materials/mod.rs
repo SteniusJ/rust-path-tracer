@@ -5,6 +5,7 @@ use cuda_core::DeviceCopy;
 
 /* 
  * Update materials to use enum instead of traits since GPU code can't handle those 
+ * enum turned out to be bad and poisoned my triangle data
  */
 #[derive(Clone, Copy)]
 pub enum Material {
@@ -39,6 +40,25 @@ impl Material {
     }
     pub fn new_none() -> Material {
         Material::NONE
+    }
+    pub fn flatten(&self) -> (u8, (f64, f64, f64), f64, f64) {
+        match self {
+            Material::Lambertian { albedo } => (0, (albedo.x, albedo.y, albedo.z), 0.0, 0.0) ,
+            Material::Dielectric { refraction_index } => (1, (0.0, 0.0, 0.0), 0.0, *refraction_index),
+            Material::Metal { albedo, fuzz } => (2, (albedo.x, albedo.y, albedo.z), *fuzz, 0.0),
+            Material::Normal => (3, (0.0, 0.0, 0.0), 0.0, 0.0),
+            Material::NONE => (4, (0.0, 0.0, 0.0), 0.0, 0.0)
+        }
+    }
+    pub fn from_flattened(flattened: (u8, (f64, f64, f64), f64, f64)) -> Self {
+        match flattened.0 {
+            0 => Material::new_lambertian(vec3::Vec3::new(flattened.1.0, flattened.1.1, flattened.1.2)),
+            1 => Material::new_dielectric(flattened.3),
+            2 => Material::new_metal(vec3::Vec3::new(flattened.1.0, flattened.1.1, flattened.1.2), flattened.2),
+            3 => Material::new_normal(),
+            4 => Material::new_none(),
+            _ => Material::new_none()
+        }
     }
 }
 

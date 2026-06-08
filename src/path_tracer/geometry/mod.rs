@@ -78,14 +78,14 @@ impl Triangle {
         (f64, f64, f64),
         (f64, f64, f64),
         (f64, f64, f64),
-        materials::Material
+        (u8, (f64, f64, f64), f64, f64)
     ) {
         (
             (self.vertice1.x, self.vertice1.y, self.vertice1.z),
             (self.vertice2.x, self.vertice2.y, self.vertice2.z),
             (self.vertice3.x, self.vertice3.y, self.vertice3.z),
             (self.normal.x, self.normal.y, self.normal.z),
-            self.material
+            self.material.flatten()
         )
     }
     pub fn from_flattened(flattened: (
@@ -93,14 +93,14 @@ impl Triangle {
         (f64, f64, f64),
         (f64, f64, f64),
         (f64, f64, f64),
-        materials::Material
+        (u8, (f64, f64, f64), f64, f64)
     )) -> Self {
         Self {
             vertice1: vec3::Vec3::new(flattened.0.0, flattened.0.1, flattened.0.2),
             vertice2: vec3::Vec3::new(flattened.1.0, flattened.1.1, flattened.1.2),
             vertice3: vec3::Vec3::new(flattened.2.0, flattened.2.1, flattened.2.2),
             normal: vec3::Vec3::new(flattened.3.0, flattened.3.1, flattened.3.2),
-            material: flattened.4
+            material: materials::Material::from_flattened(flattened.4)
         }
     }
 }
