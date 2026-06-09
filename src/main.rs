@@ -10,8 +10,8 @@ use path_tracer::{
 };
 
 fn main() {
-    let px_width = 400;
-    let px_height = 200;
+    let px_width = 1920;
+    let px_height = 1080;
     let samples = 10;
     let seed = 12345;
     let depth = 50;
@@ -28,7 +28,7 @@ fn main() {
     let camera = Camera::new(look_from, look_at, v_up, fov, aspect, aperature, dist_to_focus);
 
     let cuboid_mat = Material::new_lambertian(Vec3::new(0.5, 0.2, 0.2));
-    let _glass = Material::new_dielectric(1.5);
+    let glass = Material::new_dielectric(1.5);
     let metallic = Material::new_metal(Vec3::new(0.5, 0.5, 0.5), 0.0);
     let tri_mat = Material::new_lambertian(Vec3::new(1.0, 0.0, 0.0));
 
@@ -59,13 +59,12 @@ fn main() {
         metallic,
         &mut world
         );
-/*
+
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
         glass,
         &mut world
         );
-*/
 
     world.push(geometry::Triangle::new(
                 Vec3::new(-2.0, 1.0, 4.0),

@@ -104,7 +104,7 @@ pub fn render(
 
     let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
 
-    println!("starting render on gpu...\nwidth: {px_width}\nheight: {px_height}\ntotal pixels: {npixels}\n");
+    println!("starting render on gpu...\nwidth: {} + {denoising}\nheight: {} + {denoising}\ntotal pixels: {npixels}\n", px_width - denoising as u16, px_height - denoising as u16);
 
     module.
         render(
