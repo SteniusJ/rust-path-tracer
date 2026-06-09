@@ -13,6 +13,9 @@ fn main() {
     let px_width = 400;
     let px_height = 200;
     let samples = 10;
+    let seed = 12345;
+    let depth = 50;
+    let denoising = 3; // width of window used for median filter denoising, x < 2 to disable
 
     let look_from = Vec3::new(3.0, 2.0, 0.5);
     let look_at = Vec3::new(-2.0, 2.0, 0.0);
@@ -79,11 +82,12 @@ fn main() {
         px_width,
         px_height,
         samples,
-        50,
+        depth,
+        seed,
         world,
         camera,
         "output.ppm",
-        3,
+        denoising,
         module,
         stream
         );

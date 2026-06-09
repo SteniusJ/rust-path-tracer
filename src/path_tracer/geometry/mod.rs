@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::Read;
 
 use cuda_core::DeviceCopy;
-use cuda_device::gpu_printf;
 
 #[derive(Clone, Copy)]
 pub struct Triangle {

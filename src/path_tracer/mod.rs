@@ -46,6 +46,7 @@ pub mod kernels {
         px_width: u16,
         px_height: u16,
         depth: u8,
+        seed: u32,
         mut out: DisjointSlice<(u8, u8, u8)>
         ) {
         let idx = thread::index_1d();
@@ -53,7 +54,7 @@ pub mod kernels {
 
         if let Some(out_elem) = out.get_mut(idx) {
             let mut color = vec3::Vec3::empty();
-            let mut seed = i as u32 + 23712;
+            let mut seed = i as u32 + seed;
             let camera = camera::Camera::from_gpu_arg(camera);
 
             let j = px_height as usize - (i / px_width as usize);
@@ -83,6 +84,7 @@ pub fn render(
     px_height: u16,
     samples: u8,
     depth: u8,
+    seed: u32,
     world: Vec<geometry::Triangle>,
     camera: camera::Camera,
     output_name: &str,
@@ -102,6 +104,8 @@ pub fn render(
 
     let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
 
+    println!("starting render on gpu...\nwidth: {px_width}\nheight: {px_height}\ntotal pixels: {npixels}\n");
+
     module.
         render(
             &stream,
@@ -112,6 +116,7 @@ pub fn render(
             px_width,
             px_height,
             depth,
+            seed,
             &mut out_dev
             )
         .expect("Kernel launch failed");
@@ -120,8 +125,8 @@ pub fn render(
 
     render_data.push_gpu_vec(out);
 
-    if denoising > 1 {
-        println!("\nstarting denoising...");
+    if denoising > 2 {
+        println!("starting denoising...");
         render_data.median_filter(denoising, 1);
     }
 
