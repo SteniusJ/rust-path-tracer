@@ -2,27 +2,51 @@ use crate::path_tracer::{ray, vec3, hitable, util};
 
 use cuda_device::device;
 
-/* 
- * Update materials to use enum instead of traits since GPU code can't handle those 
- */
 #[derive(Clone, Copy)]
-pub enum Material {
-    Lambertian { albedo: vec3::Vec3 },
-    Metal { albedo: vec3::Vec3, fuzz: f64 },
-    Dielectric { refraction_index: f64 },
+pub enum MaterialID {
+    Lambertian,
+    Metal,
+    Dielectric,
     Normal,
     NONE
 }
 
+/*
+ * Material struct, has to be used instead of enum with values since cuda oxide doesn't support
+ * those.
+ */
+#[derive(Clone, Copy)]
+pub struct Material {
+    id: MaterialID,
+    albedo: vec3::Vec3,
+    fuzz: f64,
+    refraction_index: f64
+}
+
 impl Material {
     pub fn new_lambertian(albedo: vec3::Vec3) -> Material {
-        Material::Lambertian { albedo }
+        Material {
+            id: MaterialID::Lambertian,
+            albedo,
+            fuzz: 0.0,
+            refraction_index: 0.0
+        }
     }
     pub fn new_dielectric(refraction_index: f64) -> Material {
-        Material::Dielectric { refraction_index }
+        Material {
+            id: MaterialID::Dielectric,
+            albedo: vec3::Vec3::empty(),
+            fuzz: 0.0,
+            refraction_index
+        }
     }
     pub fn new_normal() -> Material {
-        Material::Normal
+        Material {
+            id: MaterialID::Normal,
+            albedo: vec3::Vec3::empty(),
+            fuzz: 0.0,
+            refraction_index: 0.0
+        }
     }
     pub fn new_metal(albedo: vec3::Vec3, fuzz: f64) -> Material {
         let fuzz = {
@@ -32,24 +56,38 @@ impl Material {
                 1.0
             }
         };
-        Material::Metal { albedo, fuzz }
+        Material {
+            id: MaterialID::Metal,
+            albedo,
+            fuzz,
+            refraction_index: 0.0
+        }
     }
     pub fn new_none() -> Material {
-        Material::NONE
+        Material {
+            id: MaterialID::NONE,
+            albedo: vec3::Vec3::empty(),
+            fuzz: 0.0,
+            refraction_index: 0.0
+        }
     }
 }
 
-/* 
- * CPU implementation of enum based scatter function
- */
 #[device]
 pub fn scatter(ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
-    match hit_record.material {
-        Material::Lambertian { albedo } => lambertian_scatter(albedo, hit_record, attentuation, scattered, seed),
-        Material::Metal { albedo, fuzz } => metal_scatter(albedo, fuzz, ray, hit_record, attentuation, scattered, seed),
-        Material::Dielectric { refraction_index } => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, seed),
-        Material::Normal => normal_scatter(hit_record, attentuation, scattered, seed),
-        Material::NONE => false,
+    let (id, albedo, fuzz, refraction_index) = (
+        hit_record.material.id,
+        hit_record.material.albedo,
+        hit_record.material.fuzz,
+        hit_record.material.refraction_index
+        );
+
+    match id {
+        MaterialID::Lambertian => lambertian_scatter(albedo, hit_record, attentuation, scattered, seed),
+        MaterialID::Metal => metal_scatter(albedo, fuzz, ray, hit_record, attentuation, scattered, seed),
+        MaterialID::Dielectric => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, seed),
+        MaterialID::Normal => normal_scatter(hit_record, attentuation, scattered, seed),
+        MaterialID::NONE => false,
     }
 }
 
