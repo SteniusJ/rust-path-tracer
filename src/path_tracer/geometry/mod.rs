@@ -43,7 +43,7 @@ impl Triangle {
     pub fn hit(&self, ray: &ray::Ray, _t_min: f64, _t_max: f64, rec: &mut hitable::HitRecord) -> bool {
         let r_dir = ray.direction.to_normalized();
 
-        if self.normal.dot(&r_dir) == 0.0 {
+        if self.normal.dot(&r_dir) > 0.0 {
             return false;
         }
 
@@ -75,7 +75,6 @@ impl Triangle {
         }
         
         false
-
     }
 }
 
@@ -105,8 +104,8 @@ impl Cuboid {
         triangles.push(Triangle::new(v3, v2, v4, material));
         triangles.push(Triangle::new(v1, v3, v5, material));
         triangles.push(Triangle::new(v3, v7, v5, material));
-        triangles.push(Triangle::new(v1, v2, v5, material));
-        triangles.push(Triangle::new(v5, v2, v6, material));
+        triangles.push(Triangle::new(v2, v1, v5, material));
+        triangles.push(Triangle::new(v2, v5, v6, material));
         triangles.push(Triangle::new(v8, v4, v2, material));
         triangles.push(Triangle::new(v2, v6, v8, material));
         triangles.push(Triangle::new(v5, v7, v8, material));

@@ -95,8 +95,8 @@ pub fn render(
     let mut output = File::create(output_name).unwrap();
     // due to denoising removing the edges, we make the initial render bigger by the window
     // width(denoising)
-    let px_width = px_width + denoising as u16;
-    let px_height = px_height + denoising as u16;
+    let px_width = px_width + (denoising as u16).div_ceil(2);
+    let px_height = px_height + (denoising as u16).div_ceil(2);
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
     let npixels = px_width as u32 * px_height as u32;
 
@@ -104,7 +104,19 @@ pub fn render(
 
     let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
 
-    println!("starting render on gpu...\nwidth: {} + {denoising}\nheight: {} + {denoising}\ntotal pixels: {npixels}\n", px_width - denoising as u16, px_height - denoising as u16);
+    {
+        let denoising = (denoising as u16).div_ceil(2);
+        let px_width = px_width - denoising;
+        let px_height = px_height - denoising;
+        let n_tris = world.len();
+
+        println!("starting render on gpu...
+width: {px_width} + {denoising}
+height: {px_height} + {denoising}
+total pixels: {npixels}
+triangles: {n_tris}\n",
+        );
+    }
 
     module.
         render(
