@@ -6,6 +6,7 @@ pub mod util;
 pub mod geometry;
 pub mod materials;
 pub mod output;
+pub mod bvh;
 
 use cuda_device::{kernel, thread, DisjointSlice, gpu_printf};
 use cuda_core::{DeviceBuffer, LaunchConfig, CudaStream};
