@@ -7,6 +7,7 @@ use crate::path_tracer::{
 };
 
 use cuda_core::{ DeviceBuffer, CudaStream, DeviceCopy };
+use cuda_device::gpu_printf;
 
 use std::sync::Arc;
 
@@ -47,39 +48,97 @@ impl<'a> BVH<'a> {
         BVH { nodes, tri_indices, tris }
     }
     pub fn intersect(&self, ray: &Ray, hit_rec: &mut HitRecord) -> bool {
+        static STACK_SIZE: usize = 1000;
+        let mut stack = [0; STACK_SIZE];
+        let mut stack_top = 0_i64;
+        let mut hit = false;
+
+        stack[stack_top as usize] = 0;
+        stack_top += 1;
+
+        while stack_top >= 0 {
+            stack_top -= 1;
+            let node = self.nodes[stack[stack_top as usize]];
+
+            let mut temp_rec = HitRecord::empty();
+            let mut closest_t = f64::MAX;
+
+            if !intersect_aabb(ray, hit_rec.t, node.aabb_min, node.aabb_max) { continue; }
+
+            if node.is_leaf() {
+                for i in 0..node.tri_count {
+                    if self.tris[self.tri_indices[node.first_tri_idx + i]].hit(ray, 0.0001, closest_t, &mut temp_rec) {
+                        hit = true;
+                        if closest_t > temp_rec.t {
+                            closest_t = temp_rec.t;
+                            *hit_rec = temp_rec.clone();
+                        }
+                    }
+                }
+
+                return hit;
+            } else {
+                if stack_top < STACK_SIZE as i64 - 1 {
+                    stack[stack_top as usize] = node.left_node;
+                    stack_top += 1;
+                }
+                if stack_top < STACK_SIZE as i64 - 1 {
+                    stack[stack_top as usize] = node.left_node + 1;
+                    stack_top += 1;
+                }
+            }
+        }
+
+        false
+        /*
         let mut node_idx = 0;
 
         let node = self.nodes[node_idx];
         // Check if ray intersects primary aabb
-        if !intersect_aabb(ray, hit_rec.t, node.aabb_min, node.aabb_max) { return false }
 
         loop {
             let node = self.nodes[node_idx];
+            let mut temp_rec = HitRecord::empty();
+            let mut hit = false;
+            let mut closest_t = f64::MAX;
 
             if node.is_leaf() {
                 for i in 0..node.tri_count {
-                    self.tris[self.tri_indices[node.first_tri_idx + i]].hit(ray, 0.0, 0.0, hit_rec);
+                    if self.tris[self.tri_indices[node.first_tri_idx + i]].hit(ray, 0.0001, closest_t, &mut temp_rec) {
+                        hit = true;
+                        if closest_t > temp_rec.t {
+                            closest_t = temp_rec.t;
+                            *hit_rec = temp_rec.clone();
+                        }
+                    }
                 }
-                return true;
+                return hit;
             } else {
+                /*
+                 * THIS DOES NOT WORK!!!
+                 *
+                 * both branches have to be scoured
+                 */
+
                 let left_child = self.nodes[node.left_node];
                 /*
                  * If left child aabb intersects update node_idx to be that.
                  * Else update node_idx to be that of the right child.
                  * If neither hits end loop.
                  */
-                if intersect_aabb(ray, hit_rec.t, left_child.aabb_min, left_child.aabb_max) {
+                if intersect_aabb(ray, temp_rec.t, left_child.aabb_min, left_child.aabb_max) {
                     node_idx = node.left_node;
                     continue;
                 }
                 let right_child = self.nodes[node.left_node + 1];
-                if intersect_aabb(ray, hit_rec.t, right_child.aabb_min, right_child.aabb_max){
+                if intersect_aabb(ray, temp_rec.t, right_child.aabb_min, right_child.aabb_max){
                     node_idx = node.left_node + 1;
                     continue;
                 }
                 return false;
             }
         }
+    */
     }
 }
 
