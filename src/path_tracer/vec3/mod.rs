@@ -1,6 +1,5 @@
 use std::ops;
 use std::fmt;
-use std::option::Option;
 
 use crate::path_tracer::util;
 

@@ -17,6 +17,24 @@ pub fn randf(seed: &mut u32) -> f64 {
     randnr as f64 / 4294967296.0_f64
 }
 
+#[device]
+pub fn min_f64(v1: f64, v2: f64) -> f64 {
+    if v1 < v2 {
+        return v1;
+    } else {
+        return v2;
+    }
+}
+
+#[device]
+pub fn max_f64(v1: f64, v2: f64) -> f64 {
+    if v1 > v2 {
+        return v1;
+    } else {
+        return v2;
+    }
+}
+
 /* Newton-Raphson sqrt
  */
 #[device]

@@ -2,7 +2,8 @@ use crate::path_tracer::{
     vec3::Vec3,
     geometry::Triangle,
     ray::Ray,
-    hitable::HitRecord
+    hitable::HitRecord,
+    util::{min_f64, max_f64}
 };
 
 use cuda_core::{ DeviceBuffer, CudaStream, DeviceCopy };
@@ -85,16 +86,16 @@ impl<'a> BVH<'a> {
 fn intersect_aabb(ray: &Ray, t: f64, b_min: Vec3, b_max: Vec3) -> bool {
     let tx1 = (b_min.x - ray.origin.x) / ray.direction.x;
     let tx2 = (b_max.x - ray.origin.x) / ray.direction.x;
-    let tmin = tx1.min(tx2);
-    let tmax = tx1.max(tx2);
+    let tmin = min_f64(tx1, tx2);
+    let tmax = max_f64(tx1, tx2);
     let ty1 = (b_min.y - ray.origin.y) / ray.direction.y;
     let ty2 = (b_max.y - ray.origin.y) / ray.direction.y;
-    let tmin = tmin.max(ty1.min(ty2));
-    let tmax = tmax.min(ty1.max(ty2));
+    let tmin = max_f64(tmin, min_f64(ty1, ty2));
+    let tmax = min_f64(tmax, max_f64(ty1, ty2));
     let tz1 = (b_min.z - ray.origin.z) / ray.direction.z;
     let tz2 = (b_max.z - ray.origin.z) / ray.direction.z;
-    let tmin = tmin.max(tz1.min(tz2));
-    let tmax = tmax.min(tz1.max(tz2));
+    let tmin = max_f64(tmin, min_f64(tz1, tz2));
+    let tmax = min_f64(tmax, max_f64(tz1, tz2));
 
     tmax >= tmin && tmin < t && tmax > 0.0
 }
