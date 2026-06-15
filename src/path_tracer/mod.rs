@@ -23,6 +23,7 @@ pub mod kernels {
         vec3,
         util,
         geometry,
+        bvh,
         kernel,
         thread,
         DisjointSlice,
@@ -33,6 +34,8 @@ pub mod kernels {
     #[kernel]
     pub fn render(
         tris: &[geometry::Triangle],
+        bvh_nodes: &[bvh::BVHNode],
+        tri_indices: &[usize],
         camera: (
             (f64, f64, f64),
             (f64, f64, f64),
@@ -57,6 +60,7 @@ pub mod kernels {
             let mut color = vec3::Vec3::empty();
             let mut seed = i as u32 + seed;
             let camera = camera::Camera::from_gpu_arg(camera);
+            let bvh = bvh::BVH::new(bvh_nodes, tri_indices, tris);
 
             let j = px_height as usize - (i / px_width as usize);
             let i = i - (i / px_width as usize * px_width as usize);
@@ -65,7 +69,7 @@ pub mod kernels {
                 let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
                 let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
                 let ray = camera.get_ray(u, v, &mut seed);
-                color += get_color(ray, tris, depth, &mut seed);
+                color += get_color(ray, /*tris*/&bvh, depth, &mut seed);
             }
 
             color /= samples as f64;
@@ -101,7 +105,13 @@ pub fn render(
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
     let npixels = px_width as u32 * px_height as u32;
 
-    let tris_dev = DeviceBuffer::from_host(&stream, &world).unwrap();
+    println!("building bvh...");
+    let (
+        bvh_nodes_dev,
+        tri_indices_dev,
+        tris_dev
+    ) = bvh::build_bvh(&stream, &world);
+    println!("bvh built!");
 
     let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
 
@@ -115,7 +125,8 @@ pub fn render(
 width: {px_width} + {denoising}
 height: {px_height} + {denoising}
 total pixels: {npixels}
-triangles: {n_tris}\n",
+triangles: {n_tris}
+samples: {samples}\n",
         );
     }
 
@@ -124,6 +135,8 @@ triangles: {n_tris}\n",
             &stream,
             LaunchConfig::for_num_elems(npixels),
             &tris_dev,
+            &bvh_nodes_dev,
+            &tri_indices_dev,
             camera.into_gpu_arg(),
             samples,
             px_width,
@@ -164,7 +177,7 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitReco
     hit
 }
 
-fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
+fn get_color(ray: ray::Ray, /*tris: &[geometry::Triangle]*/bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
     let mut depth = 0;
     let mut attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
     let mut ray = ray;
@@ -180,7 +193,15 @@ fn get_color(ray: ray::Ray, tris: &[geometry::Triangle], max_depth: u8, seed: &m
         }
 
         // Ray didn't hit anything, loop ends
+        /*
         if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris) {
+            let unit_direction = ray.direction.to_normalized();
+            let t = 0.5 * (unit_direction.y + 1.0);
+            let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+            return attentuation * color;
+        }
+        */
+        if !bvh.intersect(&ray, &mut hit_record) {
             let unit_direction = ray.direction.to_normalized();
             let t = 0.5 * (unit_direction.y + 1.0);
             let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);

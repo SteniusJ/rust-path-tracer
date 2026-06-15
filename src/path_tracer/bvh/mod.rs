@@ -1,8 +1,15 @@
 use crate::path_tracer::{
     vec3::Vec3,
-    geometry::Triangle
+    geometry::Triangle,
+    ray::Ray,
+    hitable::HitRecord
 };
 
+use cuda_core::{ DeviceBuffer, CudaStream, DeviceCopy };
+
+use std::sync::Arc;
+
+#[derive(Clone, Copy)]
 pub struct BVHNode {
     aabb_min: Vec3,
     aabb_max: Vec3,
@@ -11,40 +18,109 @@ pub struct BVHNode {
     tri_count: usize,
 }
 
+unsafe impl DeviceCopy for BVHNode {}
+
 impl BVHNode {
+    pub fn empty() -> Self {
+        Self {
+            aabb_min: Vec3::empty(),
+            aabb_max: Vec3::empty(),
+            left_node: 0,
+            first_tri_idx: 0,
+            tri_count: 0
+        }
+    }
     pub fn is_leaf(&self) -> bool {
         self.tri_count > 0
     }
 }
 
-/*
- * Needs to be flattened to be passed to the gpu.
- * Can't use vectors on the gpu.
- */
-pub struct BVH {
-    nodes: Vec<BVHNode>,
-    tri_indices: Vec<usize>
+pub struct BVH<'a> {
+    nodes: &'a[BVHNode],
+    tri_indices: &'a[usize],
+    tris: &'a[Triangle]
 }
 
-impl BVH {
-    pub fn new(tris: &Vec<Triangle>) -> Self {
-        let root_node_idx = 0;
-        let mut nodes_used = 1;
-        let mut bvh_nodes: Vec<BVHNode> = Vec::with_capacity(tris.len() * 2 - 1);
-        let mut tri_indices: Vec<usize> = (0..tris.len()).collect();
+impl<'a> BVH<'a> {
+    pub fn new(nodes: &'a[BVHNode], tri_indices: &'a[usize], tris: &'a[Triangle]) -> Self {
+        BVH { nodes, tri_indices, tris }
+    }
+    pub fn intersect(&self, ray: &Ray, hit_rec: &mut HitRecord) -> bool {
+        let mut node_idx = 0;
 
-        let root = &mut bvh_nodes[root_node_idx];
-        root.left_node = 0;
-        root.first_tri_idx = 0;
-        root.tri_count = tris.len();
-        update_node_bounds(root_node_idx, &mut bvh_nodes, tris);
-        subdivide(root_node_idx, &mut nodes_used, &mut bvh_nodes, tris, &mut tri_indices);
+        let node = self.nodes[node_idx];
+        // Check if ray intersects primary aabb
+        if !intersect_aabb(ray, hit_rec.t, node.aabb_min, node.aabb_max) { return false }
 
-        BVH {
-            nodes: bvh_nodes,
-            tri_indices
+        loop {
+            let node = self.nodes[node_idx];
+
+            if node.is_leaf() {
+                for i in 0..node.tri_count {
+                    self.tris[self.tri_indices[node.first_tri_idx + i]].hit(ray, 0.0, 0.0, hit_rec);
+                }
+                return true;
+            } else {
+                let left_child = self.nodes[node.left_node];
+                /*
+                 * If left child aabb intersects update node_idx to be that.
+                 * Else update node_idx to be that of the right child.
+                 * If neither hits end loop.
+                 */
+                if intersect_aabb(ray, hit_rec.t, left_child.aabb_min, left_child.aabb_max) {
+                    node_idx = node.left_node;
+                    continue;
+                }
+                let right_child = self.nodes[node.left_node + 1];
+                if intersect_aabb(ray, hit_rec.t, right_child.aabb_min, right_child.aabb_max){
+                    node_idx = node.left_node + 1;
+                    continue;
+                }
+                return false;
+            }
         }
     }
+}
+
+fn intersect_aabb(ray: &Ray, t: f64, b_min: Vec3, b_max: Vec3) -> bool {
+    let tx1 = (b_min.x - ray.origin.x) / ray.direction.x;
+    let tx2 = (b_max.x - ray.origin.x) / ray.direction.x;
+    let tmin = tx1.min(tx2);
+    let tmax = tx1.max(tx2);
+    let ty1 = (b_min.y - ray.origin.y) / ray.direction.y;
+    let ty2 = (b_max.y - ray.origin.y) / ray.direction.y;
+    let tmin = tmin.max(ty1.min(ty2));
+    let tmax = tmax.min(ty1.max(ty2));
+    let tz1 = (b_min.z - ray.origin.z) / ray.direction.z;
+    let tz2 = (b_max.z - ray.origin.z) / ray.direction.z;
+    let tmin = tmin.max(tz1.min(tz2));
+    let tmax = tmax.min(tz1.max(tz2));
+
+    tmax >= tmin && tmin < t && tmax > 0.0
+}
+
+/*
+ * May have to transfer over to u64 instead of usize.
+ */
+pub fn build_bvh(stream: &Arc<CudaStream>, tris: &Vec<Triangle>) -> (DeviceBuffer<BVHNode>, DeviceBuffer<usize>, DeviceBuffer<Triangle>) {
+    let root_node_idx = 0;
+    let mut nodes_used = 0;
+    let mut bvh_nodes: Vec<BVHNode> = Vec::with_capacity(tris.len() * 2 - 1);
+    let mut tri_indices: Vec<usize> = (0..tris.len()).collect();
+
+    bvh_nodes.insert(root_node_idx, BVHNode::empty());
+    let root = &mut bvh_nodes[root_node_idx];
+    root.left_node = 0;
+    root.first_tri_idx = 0;
+    root.tri_count = tris.len();
+    update_node_bounds(root_node_idx, &mut bvh_nodes, tris);
+    subdivide(root_node_idx, &mut nodes_used, &mut bvh_nodes, tris, &mut tri_indices);
+
+    let nodes_dev = DeviceBuffer::from_host(stream, &bvh_nodes).unwrap();
+    let tri_indices_dev = DeviceBuffer::from_host(stream, &tri_indices).unwrap();
+    let tris_dev = DeviceBuffer::from_host(stream, tris).unwrap();
+
+    (nodes_dev, tri_indices_dev, tris_dev)
 }
 
 fn update_node_bounds(node_idx: usize, bvh_nodes: &mut Vec<BVHNode>, tris: &Vec<Triangle>) {
@@ -74,12 +150,13 @@ fn subdivide(node_idx: usize, nodes_used: &mut usize, bvh_nodes: &mut Vec<BVHNod
 
     let split_pos = bvh_nodes[node_idx].aabb_min[axis] + extent[axis] * 0.5;
     let mut i = bvh_nodes[node_idx].first_tri_idx;
-    let j = i + bvh_nodes[node_idx].tri_count - 1;
+    let mut j = i + bvh_nodes[node_idx].tri_count - 1;
     while i <= j {
         if tris[tri_indices[i]].origin[axis] < split_pos {
             i += 1;
         } else {
             tri_indices.swap(i, j - 1);
+            j -= 1;
         }
     }
 
@@ -90,6 +167,9 @@ fn subdivide(node_idx: usize, nodes_used: &mut usize, bvh_nodes: &mut Vec<BVHNod
     let left_child_idx = *nodes_used;
     *nodes_used += 1;
     let right_child_idx = *nodes_used;
+
+    bvh_nodes.insert(left_child_idx, BVHNode::empty());
+    bvh_nodes.insert(right_child_idx, BVHNode::empty());
 
     bvh_nodes[left_child_idx].first_tri_idx = bvh_nodes[node_idx].first_tri_idx;
     bvh_nodes[left_child_idx].tri_count = left_count;
