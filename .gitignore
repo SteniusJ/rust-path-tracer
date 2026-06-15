@@ -1,4 +1,5 @@
 /target
+/scenes
 *.ppm
 *.obj
 *.ll
