@@ -6,13 +6,14 @@ pub mod materials;
 pub mod camera;
 mod util;
 mod output;
+mod bvh;
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::io;
 
-fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, world: &Vec<geometry::Triangle>, default_mat: materials::Material) -> bool {
-    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty(default_mat);
+fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, world: &Vec<geometry::Triangle>) -> bool {
+    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty();
     let mut hit = false;
     let mut closest_t = t_max;
 
@@ -29,13 +30,13 @@ fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitReco
     hit
 }
 
-fn get_color(ray: ray::Ray, tris: &Vec<geometry::Triangle>, max_depth: u8, default_mat: materials::Material, seed: &mut u32) -> vec3::Vec3 {
+fn get_color(ray: ray::Ray, bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
     let mut depth = 0;
     let mut attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
     let mut ray = ray;
 
     loop {
-        let mut hit_record = hitable::HitRecord::empty(default_mat);
+        let mut hit_record = hitable::HitRecord::empty();
         let mut loop_attentuation = vec3::Vec3::empty();
         let mut scattered = ray::Ray::empty();
 
@@ -45,7 +46,24 @@ fn get_color(ray: ray::Ray, tris: &Vec<geometry::Triangle>, max_depth: u8, defau
         }
 
         // Ray didn't hit anything, loop ends
-        if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris, default_mat) {
+        /*
+        if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris) {
+            let unit_direction = ray.direction.to_normalized();
+            let t = 0.5 * (unit_direction.y + 1.0);
+            let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+            return attentuation * color;
+        }
+        */
+        /*
+        bvh.recursive_intersect(&ray, &mut hit_record, 0);
+        if hit_record.material != materials::Material::NONE {
+            let unit_direction = ray.direction.to_normalized();
+            let t = 0.5 * (unit_direction.y + 1.0);
+            let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+            return attentuation * color;
+        }
+        */
+        if !bvh.stack_intersect(&ray, &mut hit_record) {
             let unit_direction = ray.direction.to_normalized();
             let t = 0.5 * (unit_direction.y + 1.0);
             let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
@@ -64,7 +82,7 @@ fn get_color(ray: ray::Ray, tris: &Vec<geometry::Triangle>, max_depth: u8, defau
      }
 }
 
-pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, default_mat: materials::Material, prog_interval: i64, denoising: u8) {
+pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::Triangle>, camera: camera::Camera, output_name: &str, prog_interval: i64, denoising: u8) {
     let mut progress = 0.0;
     let mut output = File::create(output_name).unwrap();
     // due to denoising removing the edges, we make the initial render bigger by the window
@@ -78,6 +96,9 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
     let camera = camera::Camera::from_gpu_arg(camera.into_gpu_arg());
     let mut gpu_sim_out: Vec<(u8, u8, u8)> = Vec::with_capacity(pixels);
 
+    let (bvh_nodes, tri_indices, tris) = bvh::build_bvh(world);
+    let bvh = bvh::BVH::new(&bvh_nodes, &tri_indices, &tris);
+
     for px in 0..pixels {
         let j = px_height as usize - (px / px_width as usize);
         let i = px - (px / px_width as usize * px_width as usize);
@@ -89,7 +110,7 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
             let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
             let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
             let ray = camera.get_ray(u, v, &mut seed);
-            color += get_color(ray, &world, 50, default_mat, &mut seed);
+            color += get_color(ray, &bvh, 50, &mut seed);
         }
 
         color /= samples as f64;

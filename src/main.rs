@@ -19,9 +19,8 @@ fn main() {
     let aspect = px_width as f64 / px_height as f64;
     let camera = camera::Camera::new(look_from, look_at, v_up, fov, aspect, aperature, dist_to_focus);
 
-    let default_mat = Material::new_lambertian(Vec3::empty());
     let cuboid_mat = Material::new_lambertian(Vec3::new(0.5, 0.2, 0.2));
-    let _glass = Material::new_dielectric(1.5);
+    let glass = Material::new_dielectric(1.5);
     let metallic = Material::new_metal(Vec3::new(0.5, 0.5, 0.5), 0.0);
     let tri_mat = Material::new_lambertian(Vec3::new(1.0, 0.0, 0.0));
 
@@ -55,7 +54,7 @@ fn main() {
 /*
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
-        Box::leak(glass),
+        glass,
         &mut world
         );
 */
@@ -73,7 +72,6 @@ fn main() {
         world,
         camera,
         "output.ppm",
-        default_mat,
         1,
         3
         );

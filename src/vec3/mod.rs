@@ -4,7 +4,7 @@ use std::fmt;
 use crate::util;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3 {
     pub x: f64,
     pub y: f64,
@@ -169,6 +169,19 @@ impl ops::DivAssign<f64> for Vec3 {
         self.x /= rhs;
         self.y /= rhs;
         self.z /= rhs;
+    }
+}
+
+impl ops::Index<usize> for Vec3 {
+    type Output = f64;
+
+    fn index(&self, idx: usize) -> &Self::Output {
+        match idx {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => &0.0 // Not optimal but should never be reached
+        }
     }
 }
 

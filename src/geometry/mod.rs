@@ -8,6 +8,7 @@ pub struct Triangle {
     pub vertice1: vec3::Vec3,
     pub vertice2: vec3::Vec3,
     pub vertice3: vec3::Vec3,
+    pub origin: vec3::Vec3,
     pub normal: vec3::Vec3,
     pub material: materials::Material,
 }
@@ -33,6 +34,7 @@ impl Triangle {
             vertice1: v1,
             vertice2: v2,
             vertice3: v3,
+            origin: (v1 + v2 + v3) / 3.0,
             normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
             material
         }
