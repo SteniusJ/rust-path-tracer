@@ -56,7 +56,7 @@ impl<'a> BVH<'a> {
         stack[stack_top as usize] = 0;
         stack_top += 1;
 
-        while stack_top >= 0 {
+        while stack_top > 0 {
             stack_top -= 1;
             let node = self.nodes[stack[stack_top as usize]];
 
