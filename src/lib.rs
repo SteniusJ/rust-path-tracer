@@ -54,20 +54,28 @@ fn get_color(ray: ray::Ray, bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> ve
             return attentuation * color;
         }
         */
-        /*
-        bvh.recursive_intersect(&ray, &mut hit_record, 0);
-        if hit_record.material != materials::Material::NONE {
-            let unit_direction = ray.direction.to_normalized();
-            let t = 0.5 * (unit_direction.y + 1.0);
-            let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
-            return attentuation * color;
-        }
-        */
-        if !bvh.stack_intersect(&ray, &mut hit_record) {
-            let unit_direction = ray.direction.to_normalized();
-            let t = 0.5 * (unit_direction.y + 1.0);
-            let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
-            return attentuation * color;
+
+        static BVH_INTERSECT_MODE: u8 = 1;
+        match BVH_INTERSECT_MODE {
+            0 => {
+                let mut hit = false;
+                bvh.recursive_intersect(&ray, &mut hit_record, 0, &mut hit);
+                if hit {
+                    let unit_direction = ray.direction.to_normalized();
+                    let t = 0.5 * (unit_direction.y + 1.0);
+                    let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+                    return attentuation * color;
+                }
+            },
+            1 => {
+                if !bvh.stack_intersect(&ray, &mut hit_record) {
+                    let unit_direction = ray.direction.to_normalized();
+                    let t = 0.5 * (unit_direction.y + 1.0);
+                    let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
+                    return attentuation * color;
+                }
+            },
+            _ => ()
         }
 
         // material absorbed ray, loop ends

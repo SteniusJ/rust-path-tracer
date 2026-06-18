@@ -41,21 +41,20 @@ impl<'a> BVH<'a> {
         BVH { nodes, tri_indices, tris }
     }
     pub fn stack_intersect(&self, ray: &Ray, hit_rec: &mut HitRecord) -> bool {
-        static STACK_SIZE: usize = 1000000;
+        static STACK_SIZE: usize = 10;
         let mut stack = [0; STACK_SIZE];
         let mut stack_top = 0_i64;
+
         let mut hit = false;
+        let mut temp_rec = HitRecord::empty();
+        let mut closest_t = f64::MAX;
 
         stack[stack_top as usize] = 0;
         stack_top += 1;
 
         while stack_top > 0 {
-            //println!("stack_top: {stack_top}");
             stack_top -= 1;
             let node = self.nodes[stack[stack_top as usize]];
-
-            let mut temp_rec = HitRecord::empty();
-            let mut closest_t = f64::MAX;
 
             if !intersect_aabb(ray, hit_rec.t, node.aabb_min, node.aabb_max) { continue; }
 
@@ -83,9 +82,9 @@ impl<'a> BVH<'a> {
             }
         }
 
-        false
+        hit
     }
-    pub fn recursive_intersect(&self, ray: &Ray, hit_rec: &mut HitRecord, node_idx: usize) {
+    pub fn recursive_intersect(&self, ray: &Ray, hit_rec: &mut HitRecord, node_idx: usize, hit: &mut bool) {
         let node = self.nodes[node_idx];
         let mut closest_t = f64::MAX;
         let mut temp_rec = HitRecord::empty();
@@ -101,8 +100,8 @@ impl<'a> BVH<'a> {
                 }
             }
         } else {
-            self.recursive_intersect(ray, hit_rec, node.left_node);
-            self.recursive_intersect(ray, hit_rec, node.left_node + 1);
+            self.recursive_intersect(ray, hit_rec, node.left_node, hit);
+            self.recursive_intersect(ray, hit_rec, node.left_node + 1, hit);
         }
     }
 }
