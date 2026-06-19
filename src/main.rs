@@ -47,13 +47,9 @@ fn main() {
         &mut world
         );
 
-    let _cuboid_metallic = geometry::Cuboid::new_to_world(
-        Vec3::new(200.0, -3.0, 200.0),
-        Vec3::new(200.0, -3.0, -200.0),
+    let _floor = geometry::Plane::new_to_world(
         Vec3::new(200.0, 0.0, 200.0),
         Vec3::new(200.0, 0.0, -200.0),
-        Vec3::new(-200.0, -3.0, 200.0),
-        Vec3::new(-200.0, -3.0, -200.0),
         Vec3::new(-200.0, 0.0, 200.0),
         Vec3::new(-200.0, 0.0, -200.0),
         metallic,

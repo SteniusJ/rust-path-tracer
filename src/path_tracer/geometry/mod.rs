@@ -80,6 +80,47 @@ impl Triangle {
     }
 }
 
+pub struct Plane {
+    pub triangles: *mut Triangle
+}
+
+impl Plane {
+    /*
+     * Constructs new Plane
+     * Returns vector of Triangle
+     *
+     * Placement of vertices. Normal faces observer
+     *
+     * 3--------4
+     * |        |
+     * |        |
+     * |        |
+     * 1--------2
+     */
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material) -> (Plane, Vec<Triangle>) {
+        let mut triangles: Vec<Triangle> = Vec::with_capacity(2);
+        triangles.push(Triangle::new(v1, v2, v3, material));
+        triangles.push(Triangle::new(v3, v2, v4, material));
+
+        (
+            Plane {
+                triangles: triangles.as_mut_ptr(),
+            },
+            triangles
+        )
+    }
+    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> Plane {
+        let plane = Plane::new(v1, v2, v3, v4, material);
+
+        world.reserve(2);
+        for tri in plane.1 {
+            world.push(tri);
+        }
+
+        plane.0
+    }
+}
+
 pub struct Cuboid {
     pub triangles: *mut Triangle,
 }
