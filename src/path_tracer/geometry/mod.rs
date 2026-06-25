@@ -4,6 +4,27 @@ use std::io::Read;
 
 use cuda_core::DeviceCopy;
 
+// "Pushes" object by move_vec
+pub fn move_by(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: vec3::Vec3) {
+    for i in 0..obj_ptr.len {
+        let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
+        tri.move_by(move_vec);
+    }
+}
+
+// Moves object relative to its origin to target position (move_vec)
+pub fn move_to(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: vec3::Vec3) {
+    for i in 0..obj_ptr.len {
+        let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
+        tri.move_to(move_vec);
+    }
+}
+
+pub struct ObjPointer {
+    ptr: usize,
+    len: usize
+}
+
 #[derive(Clone, Copy)]
 pub struct Triangle {
     pub vertice1: vec3::Vec3,
@@ -23,13 +44,13 @@ impl Triangle {
      * For a Triangle that has a normal pointing outward (towards the observer (you))
      * the vertices should be placed as follows
      *  
-     *        3
+     *        2
      *       / \
      *      /   \
      *     /     \
      *    /       \
      *   /         \
-     * 1/___________\2
+     * 1/___________\3
      *
      */
     pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: materials::Material) -> Triangle {
@@ -38,6 +59,16 @@ impl Triangle {
             vertice2: v2,
             vertice3: v3,
             origin: (v1 + v2 + v3) / 3.0,
+            normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
+            material
+        }
+    }
+    pub fn new_with_origin(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: materials::Material, origin: vec3::Vec3) -> Triangle {
+        Triangle {
+            vertice1: v1,
+            vertice2: v2,
+            vertice3: v3,
+            origin,
             normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
             material
         }
@@ -78,10 +109,24 @@ impl Triangle {
         
         false
     }
+    pub fn move_by(&mut self, move_vec: vec3::Vec3) {
+        self.vertice1 += move_vec;
+        self.vertice2 += move_vec;
+        self.vertice3 += move_vec;
+    }
+    pub fn move_to(&mut self, move_vec: vec3::Vec3) {
+        let original_origin = self.origin;
+        self.origin = move_vec;
+
+        // moves vertice to position of new origin shifted by offset between origin and vertex position
+        self.vertice1 = self.origin + (self.vertice1 - original_origin);
+        self.vertice2 = self.origin + (self.vertice2 - original_origin);
+        self.vertice3 = self.origin + (self.vertice3 - original_origin);
+    }
 }
 
 pub struct Plane {
-    pub triangles: *mut Triangle
+    pub triangles: Vec<Triangle>
 }
 
 impl Plane {
@@ -97,32 +142,42 @@ impl Plane {
      * |        |
      * 1--------2
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material) -> (Plane, Vec<Triangle>) {
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material) -> Plane {
+        let origin = (v1 + v2 + v3 + v4) / 4.0;
         let mut triangles: Vec<Triangle> = Vec::with_capacity(2);
-        triangles.push(Triangle::new(v1, v2, v3, material));
-        triangles.push(Triangle::new(v3, v2, v4, material));
+        triangles.push(Triangle::new_with_origin(v1, v3, v2, material, origin));
+        triangles.push(Triangle::new_with_origin(v3, v4, v2, material, origin));
 
-        (
-            Plane {
-                triangles: triangles.as_mut_ptr(),
-            },
-            triangles
-        )
+        Plane {
+            triangles,
+        }
     }
-    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> Plane {
+    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
         let plane = Plane::new(v1, v2, v3, v4, material);
 
         world.reserve(2);
-        for tri in plane.1 {
+        for tri in plane.triangles {
             world.push(tri);
         }
 
-        plane.0
+        ObjPointer {
+            ptr: world.len() - 2,
+            len: 2
+        }
+    }
+    fn new_with_origin(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material, origin: vec3::Vec3) -> Plane {
+        let mut triangles: Vec<Triangle> = Vec::with_capacity(2);
+        triangles.push(Triangle::new_with_origin(v1, v3, v2, material, origin));
+        triangles.push(Triangle::new_with_origin(v3, v4, v2, material, origin));
+
+        Plane {
+            triangles,
+        }
     }
 }
 
 pub struct Cuboid {
-    pub triangles: *mut Triangle,
+    pub triangles: Vec<Triangle>,
 }
 
 impl Cuboid {
@@ -141,42 +196,50 @@ impl Cuboid {
      * 1/_______2/
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material) -> (Cuboid, Vec<Triangle>) {
+    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material) -> Cuboid {
+        let origin = (v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8) / 8.0;
         let mut triangles: Vec<Triangle> = Vec::with_capacity(12);
-        triangles.push(Triangle::new(v1, v2, v3, material));
-        triangles.push(Triangle::new(v3, v2, v4, material));
-        triangles.push(Triangle::new(v1, v3, v5, material));
-        triangles.push(Triangle::new(v3, v7, v5, material));
-        triangles.push(Triangle::new(v2, v1, v5, material));
-        triangles.push(Triangle::new(v2, v5, v6, material));
-        triangles.push(Triangle::new(v8, v4, v2, material));
-        triangles.push(Triangle::new(v2, v6, v8, material));
-        triangles.push(Triangle::new(v5, v7, v8, material));
-        triangles.push(Triangle::new(v5, v8, v6, material));
-        triangles.push(Triangle::new(v3, v8, v7, material));
-        triangles.push(Triangle::new(v3, v4, v8, material));
 
-        (
-            Cuboid {
-                triangles: triangles.as_mut_ptr(),
-            },
+        for tri in Plane::new_with_origin(v1, v2, v3, v4, material, origin).triangles {
+            triangles.push(tri);
+        }
+        for tri in Plane::new_with_origin(v2, v1, v6, v5, material, origin).triangles {
+            triangles.push(tri);
+        }
+        for tri in Plane::new_with_origin(v5, v1, v7, v3, material, origin).triangles {
+            triangles.push(tri);
+        }
+        for tri in Plane::new_with_origin(v2, v6, v4, v8, material, origin).triangles {
+            triangles.push(tri);
+        }
+        for tri in Plane::new_with_origin(v3, v4, v7, v8, material, origin).triangles {
+            triangles.push(tri);
+        }
+        for tri in Plane::new_with_origin(v6, v5, v8, v7, material, origin).triangles {
+            triangles.push(tri);
+        }
+
+        Cuboid {
             triangles
-        )
+        }
     } 
-    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> Cuboid {
+    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
         let cuboid = Cuboid::new(v1, v2, v3, v4, v5, v6, v7, v8, material);
 
         world.reserve(12);
-        for tri in cuboid.1 {
+        for tri in cuboid.triangles {
             world.push(tri);
         }
 
-        cuboid.0
+        ObjPointer {
+            ptr: world.len() - 12,
+            len: 12
+        }
     }
 }
 
 pub struct ObjImport {
-    pub triangles: *mut Triangle,
+    pub triangles: Vec<Triangle>,
 }
 
 impl ObjImport {
@@ -184,7 +247,7 @@ impl ObjImport {
      * Constructs new Custom model from .obj wavefront file.
      * Doesn't auto triangulate, requires mesh to be pre triangulated.
      */
-    pub fn new(file_name: &str, material: materials::Material) -> (ObjImport, Vec<Triangle>) {
+    pub fn new(file_name: &str, material: materials::Material) -> ObjImport {
         let mut triangles: Vec<Triangle> = Vec::new();
         let mut import_file = File::open(file_name).unwrap();
         let mut file_contents = String::new();
@@ -227,21 +290,38 @@ impl ObjImport {
             }
         }
 
-        (
-            ObjImport {
-                triangles: triangles.as_mut_ptr(),
-            },
-            triangles
-        )
-    }
-    pub fn new_to_world(file_name: &str, material: materials::Material, world: &mut Vec<Triangle>) -> ObjImport {
-        let import = ObjImport::new(file_name, material);
+        let origin = {
+            let mut origin = vec3::Vec3::empty();
 
-        world.reserve(import.1.len());
-        for tri in import.1 {
+            for tri in &triangles {
+                origin += tri.origin;
+            }
+
+            origin = origin / triangles.len() as f64;
+
+            origin
+        };
+
+        for tri in &mut triangles {
+            tri.origin = origin;
+        }
+
+        ObjImport {
+            triangles,
+        }
+    }
+    pub fn new_to_world(file_name: &str, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
+        let import = ObjImport::new(file_name, material);
+        let import_size = import.triangles.len();
+
+        world.reserve(import_size);
+        for tri in import.triangles {
             world.push(tri);
         }
 
-        import.0
+        ObjPointer {
+            ptr: world.len() - import_size,
+            len: import_size
+        }
     }
 }

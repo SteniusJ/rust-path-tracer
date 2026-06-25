@@ -167,6 +167,7 @@ fn subdivide(node_idx: usize, nodes_used: &mut usize, bvh_nodes: &mut Vec<BVHNod
             i += 1;
         } else {
             tri_indices.swap(i, j);
+            if j == 0 { break } // overflow check, if i == 0 j will overflow without this
             j -= 1
         }
     }

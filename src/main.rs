@@ -34,24 +34,26 @@ fn main() {
 
     let mut world: Vec<geometry::Triangle> = Vec::new();
 
-    let _cuboid = geometry::Cuboid::new_to_world(
-        Vec3::new(-2.0, 1.0, -2.0),
-        Vec3::new(-2.0, 1.0, -4.0), 
-        Vec3::new(-2.0, 3.0, -2.0),
-        Vec3::new(-2.0, 3.0, -4.0),
-        Vec3::new(-4.0, 1.0, -2.0),
-        Vec3::new(-4.0, 1.0, -4.0),
-        Vec3::new(-4.0, 3.0, -2.0),
-        Vec3::new(-4.0, 3.0, -4.0),
+    let cuboid = geometry::Cuboid::new_to_world(
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(-1.0, 0.0, 0.0), 
+        Vec3::new(1.0, 2.0, 0.0),
+        Vec3::new(-1.0, 2.0, 0.0),
+        Vec3::new(1.0, 0.0, -2.0),
+        Vec3::new(-1.0, 0.0, -2.0),
+        Vec3::new(1.0, 2.0, -2.0),
+        Vec3::new(-1.0, 2.0, -2.0),
         cuboid_mat,
         &mut world
         );
 
+    geometry::move_to(&mut world, &cuboid, Vec3::new(-3.0, 2.0, -3.0));
+
     let _floor = geometry::Plane::new_to_world(
-        Vec3::new(200.0, 0.0, 200.0),
+        Vec3::new(-200.0, 0.0, -200.0),
         Vec3::new(200.0, 0.0, -200.0),
         Vec3::new(-200.0, 0.0, 200.0),
-        Vec3::new(-200.0, 0.0, -200.0),
+        Vec3::new(200.0, 0.0, 200.0),
         metallic,
         &mut world
         );
@@ -62,12 +64,17 @@ fn main() {
         &mut world
         );
 
-    world.push(geometry::Triangle::new(
-                Vec3::new(-2.0, 1.0, 4.0),
-                Vec3::new(-2.0, 1.0, 2.0),
-                Vec3::new(-2.0, 3.0, 3.0),
+
+    let mut triangle = geometry::Triangle::new(
+                Vec3::new(0.0, 1.0, 4.0),
+                Vec3::new(0.0, 1.0, 2.0),
+                Vec3::new(0.0, 3.0, 3.0),
                 tri_mat
-                ));
+                );
+
+    triangle.move_to(Vec3::new(-2.0, 2.0, 3.0));
+
+    world.push(triangle);
 
     let ctx = CudaContext::new(0).expect("Failed to create CUDA context");
     let stream = ctx.default_stream();
