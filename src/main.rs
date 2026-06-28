@@ -49,7 +49,7 @@ fn main() {
 
     geometry::move_to(&mut world, &cuboid, Vec3::new(-3.0, 2.0, -3.0));
 
-    let _floor = geometry::Plane::new_to_world(
+    let mut floor = geometry::Plane::new_to_world(
         Vec3::new(-200.0, 0.0, -200.0),
         Vec3::new(200.0, 0.0, -200.0),
         Vec3::new(-200.0, 0.0, 200.0),
@@ -57,6 +57,8 @@ fn main() {
         metallic,
         &mut world
         );
+
+    geometry::subdivide(&mut world, &mut floor, 2);
 
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",

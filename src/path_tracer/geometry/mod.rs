@@ -1,4 +1,4 @@
-use crate::path_tracer::{vec3, hitable, materials, ray};
+use crate::path_tracer::{vec3, hitable, materials, ray, util};
 use std::fs::File;
 use std::io::Read;
 
@@ -18,6 +18,26 @@ pub fn move_to(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: vec3::
         let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
         tri.move_to(move_vec);
     }
+}
+
+/* Subdivides object "level" times
+ *
+ * This function only subdivides the mesh and does not smooth it
+ */
+pub fn subdivide(world: &mut Vec<Triangle>, obj_ptr: &mut ObjPointer, level: u8) {
+    let obj_start = world.len() - obj_ptr.len;
+    let obj_slice: Vec<Triangle> = world.drain(obj_ptr.ptr..obj_ptr.ptr + obj_ptr.len).collect();
+
+    for tri in obj_slice {
+        let result = tri.subdivide(level);
+        
+        for tri in result {
+            world.push(tri);
+        }
+    }
+
+    obj_ptr.ptr = obj_start;
+    obj_ptr.len = world.len() - obj_start;
 }
 
 pub struct ObjPointer {
@@ -122,6 +142,59 @@ impl Triangle {
         self.vertice1 = self.origin + (self.vertice1 - original_origin);
         self.vertice2 = self.origin + (self.vertice2 - original_origin);
         self.vertice3 = self.origin + (self.vertice3 - original_origin);
+    }
+    /* Subdivides triangle into two "level" times
+     * 
+     * Example of a singular subdivision:
+     *
+     *        2
+     *       /|\
+     *      / | \
+     *     /  |  \
+     *    /   |   \
+     *   /    |    \
+     * 1/_____m_____\3
+     *
+     * 1 2 3 represent the original vertices
+     * m is the new "midpoint" vertex
+     * the new triangles are formed from [1 2 m] and [m 2 3] respectively
+     *
+     * this method consumes the original triangle
+     */
+    pub fn subdivide(self, level: u8) -> Vec<Triangle> {
+        let mut subdivided: Vec<Triangle> = Vec::new();
+        subdivided.push(self);
+
+        for current_level in 0..level {
+            let mut current_subdivision: Vec<Triangle> = Vec::with_capacity(current_level as usize * 2);
+
+            for tri in &subdivided {
+                let midpoint = (tri.vertice1 + tri.vertice3) / 2.0;
+
+                current_subdivision.push(
+                    Triangle::new_with_origin(
+                        tri.vertice1,
+                        tri.vertice2,
+                        midpoint,
+                        tri.material,
+                        tri.origin
+                        )
+                    );
+                current_subdivision.push(
+                    Triangle::new_with_origin(
+                        midpoint,
+                        tri.vertice2,
+                        tri.vertice3,
+                        tri.material,
+                        tri.origin
+                        )
+                    );
+            }
+
+            subdivided = current_subdivision;
+        }
+
+        subdivided
     }
 }
 
