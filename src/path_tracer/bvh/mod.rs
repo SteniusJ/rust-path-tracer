@@ -7,7 +7,6 @@ use crate::path_tracer::{
 };
 
 use cuda_core::{ DeviceBuffer, CudaStream, DeviceCopy };
-use cuda_device::gpu_printf;
 
 use std::sync::Arc;
 

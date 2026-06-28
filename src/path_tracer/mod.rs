@@ -8,7 +8,7 @@ pub mod materials;
 pub mod output;
 pub mod bvh;
 
-use cuda_device::{kernel, thread, DisjointSlice, gpu_printf};
+use cuda_device::{kernel, thread, DisjointSlice};
 use cuda_core::{DeviceBuffer, LaunchConfig, CudaStream};
 use cuda_host::cuda_module;
 
@@ -27,7 +27,6 @@ pub mod kernels {
         kernel,
         thread,
         DisjointSlice,
-        gpu_printf,
         get_color
     };
 
@@ -159,25 +158,7 @@ samples: {samples}\n",
     output.write_all(render_data.to_string().as_bytes()).unwrap();
 }
 
-fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, tris: &[geometry::Triangle]) -> bool {
-    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty();
-    let mut hit = false;
-    let mut closest_t = t_max;
-
-    for tri in tris {
-        if tri.hit(ray, t_min, closest_t, &mut temp_rec) {
-            hit = true;
-            if closest_t > temp_rec.t {
-                closest_t = temp_rec.t;
-                *rec = temp_rec.clone();
-            }
-        }
-    }
-
-    hit
-}
-
-fn get_color(ray: ray::Ray, /*tris: &[geometry::Triangle]*/bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
+fn get_color(ray: ray::Ray, bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
     let mut depth = 0;
     let mut attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
     let mut ray = ray;
@@ -193,14 +174,6 @@ fn get_color(ray: ray::Ray, /*tris: &[geometry::Triangle]*/bvh: &bvh::BVH, max_d
         }
 
         // Ray didn't hit anything, loop ends
-        /*
-        if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris) {
-            let unit_direction = ray.direction.to_normalized();
-            let t = 0.5 * (unit_direction.y + 1.0);
-            let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
-            return attentuation * color;
-        }
-        */
         if !bvh.intersect(&ray, &mut hit_record) {
             let unit_direction = ray.direction.to_normalized();
             let t = 0.5 * (unit_direction.y + 1.0);
