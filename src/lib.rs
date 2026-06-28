@@ -45,37 +45,11 @@ fn get_color(ray: ray::Ray, bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> ve
             return attentuation * vec3::Vec3::empty();
         }
 
-        // Ray didn't hit anything, loop ends
-        /*
-        if !check_hits(&ray, 0.001, f64::MAX, &mut hit_record, tris) {
+        if !bvh.intersect(&ray, &mut hit_record) {
             let unit_direction = ray.direction.to_normalized();
             let t = 0.5 * (unit_direction.y + 1.0);
             let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
             return attentuation * color;
-        }
-        */
-
-        static BVH_INTERSECT_MODE: u8 = 1;
-        match BVH_INTERSECT_MODE {
-            0 => {
-                let mut hit = false;
-                bvh.recursive_intersect(&ray, &mut hit_record, 0, &mut hit);
-                if hit {
-                    let unit_direction = ray.direction.to_normalized();
-                    let t = 0.5 * (unit_direction.y + 1.0);
-                    let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
-                    return attentuation * color;
-                }
-            },
-            1 => {
-                if !bvh.stack_intersect(&ray, &mut hit_record) {
-                    let unit_direction = ray.direction.to_normalized();
-                    let t = 0.5 * (unit_direction.y + 1.0);
-                    let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
-                    return attentuation * color;
-                }
-            },
-            _ => ()
         }
 
         // material absorbed ray, loop ends
@@ -104,8 +78,12 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
     let camera = camera::Camera::from_gpu_arg(camera.into_gpu_arg());
     let mut gpu_sim_out: Vec<(u8, u8, u8)> = Vec::with_capacity(pixels);
 
-    let (bvh_nodes, tri_indices, tris) = bvh::build_bvh(world);
-    let bvh = bvh::BVH::new(&bvh_nodes, &tri_indices, &tris);
+    let (bvh_nodes, tri_indices) = bvh::build_bvh(&world);
+    let bvh = bvh::BVH::new(&bvh_nodes, &tri_indices, &world);
+
+    bvh.evaluate();
+
+    println!("tris: {}\n", world.len());
 
     for px in 0..pixels {
         let j = px_height as usize - (px / px_width as usize);

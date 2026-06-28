@@ -51,13 +51,13 @@ fn main() {
         metallic,
         &mut world
         );
-/*
+
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
         glass,
         &mut world
         );
-*/
+
     world.push(geometry::Triangle::new(
                 Vec3::new(-2.0, 1.0, 4.0),
                 Vec3::new(-2.0, 1.0, 2.0),
