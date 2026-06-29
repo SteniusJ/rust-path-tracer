@@ -12,24 +12,6 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io;
 
-fn check_hits(ray: &ray::Ray, t_min: f64, t_max: f64, rec: &mut hitable::HitRecord, world: &Vec<geometry::Triangle>) -> bool {
-    let mut temp_rec: hitable::HitRecord = hitable::HitRecord::empty();
-    let mut hit = false;
-    let mut closest_t = t_max;
-
-    for hittable in world {
-        if hittable.hit(ray, t_min, closest_t, &mut temp_rec) {
-            hit = true;
-            if closest_t > temp_rec.t {
-                closest_t = temp_rec.t;
-                *rec =  temp_rec.clone();
-            }
-        }
-    }
-
-    hit
-}
-
 fn get_color(ray: ray::Ray, bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
     let mut depth = 0;
     let mut attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
@@ -80,8 +62,6 @@ pub fn render(px_width: u16, px_height: u16, samples: u8, world: Vec<geometry::T
 
     let (bvh_nodes, tri_indices) = bvh::build_bvh(&world);
     let bvh = bvh::BVH::new(&bvh_nodes, &tri_indices, &world);
-
-    bvh.evaluate();
 
     println!("tris: {}\n", world.len());
 

@@ -38,7 +38,7 @@ fn main() {
         cuboid_mat,
         &mut world
         );
-
+/*
     let _cuboid_metallic = geometry::Cuboid::new_to_world(
         Vec3::new(200.0, -3.0, 200.0),
         Vec3::new(200.0, -3.0, -200.0),
@@ -51,7 +51,7 @@ fn main() {
         metallic,
         &mut world
         );
-
+*/
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
         glass,

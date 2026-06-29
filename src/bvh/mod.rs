@@ -6,6 +6,11 @@ use crate::{
     util::{min_f64, max_f64}
 };
 
+/* Maximum stack size.
+    * 100 should be overkill for any reasonable scene.
+    */
+static STACK_SIZE: usize = 20;
+
 #[derive(Clone, Copy)]
 pub struct BVHNode {
     aabb_min: Vec3,
@@ -41,10 +46,6 @@ impl<'a> BVH<'a> {
         BVH { nodes, tri_indices, tris }
     }
     pub fn intersect(&self, ray: &Ray, hit_rec: &mut HitRecord) -> bool {
-        /* Maximum stack size.
-         * 100 should be overkill for any reasonable scene.
-         */
-        static STACK_SIZE: usize = 20;
         let mut stack = [0; STACK_SIZE];
         let mut stack_top = 0_i64;
 
@@ -87,32 +88,6 @@ impl<'a> BVH<'a> {
 
         hit
     }
-    pub fn evaluate(&self) {
-        let mut total_leaves = 0_u32;
-        let mut leaf_data: Vec<usize> = Vec::new();
-
-        for node in self.nodes {
-            if node.is_leaf() {
-                total_leaves += 1;
-                leaf_data.push(node.tri_count);
-            }
-        }
-
-        println!(
-"
-Total nodes {}
-Total leaves {}
-
-printing leaf data:
-",
-self.nodes.len(),
-total_leaves
-        );
-
-        for (index, data) in leaf_data.iter().enumerate() {
-            println!("leaf {index} contains {data} tris");
-        }
-    }
 }
 
 fn intersect_aabb(ray: &Ray, t: f64, b_min: Vec3, b_max: Vec3) -> bool {
@@ -145,6 +120,8 @@ pub fn build_bvh(tris: &Vec<Triangle>) -> (Vec<BVHNode>, Vec<usize>) {
     root.tri_count = tris.len();
     update_node_bounds(root_node_idx, &mut bvh_nodes, &tri_indices, tris);
     subdivide(root_node_idx, &mut nodes_used, &mut bvh_nodes, tris, &mut tri_indices);
+
+    evaluate(&bvh_nodes, tris, true);
 
     (bvh_nodes, tri_indices)
 }
@@ -256,4 +233,28 @@ fn fmaxf(v1: Vec3, v2: Vec3) -> Vec3 {
     }
 
     rv
+}
+
+fn evaluate(nodes: &Vec<BVHNode>, tris: &Vec<Triangle>, in_depth: bool) {
+    println!("\nBVH evaluation: ({})", if in_depth { "in depth evaluation" } else { "standard evaluation" });
+    println!("Total nodes: {}", nodes.len());
+
+    if nodes.len() < tris.len() / 3 {
+        println!("WARNING: low number of BVH nodes in comparison to triangle count, scene optimisations recommended");
+    }
+
+    if (nodes.len() as f64).sqrt() as usize > STACK_SIZE {
+        println!("WARNING: STACK_SIZE might be too small to properly render scene");
+    }
+
+    if in_depth {
+        let mut n_leaves = 0_u32;
+        for node in nodes {
+            if node.is_leaf() {
+                n_leaves += 1;
+            }
+        }
+        println!("Total leaves: {}", n_leaves);
+    }
+    print!("\n");
 }
