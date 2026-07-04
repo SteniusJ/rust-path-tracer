@@ -134,12 +134,15 @@ fn update_node_bounds(node_idx: usize, bvh_nodes: &mut Vec<BVHNode>, tri_indices
     for i in 0..node.tri_count {
         let leaf_tri_idx = tri_indices[node.first_tri_idx + i];
         let leaf_tri = tris[leaf_tri_idx];
+        println!("leaf_tri: {} {} {}", leaf_tri.vertice1, leaf_tri.vertice2, leaf_tri.vertice3);
         node.aabb_min = fminf(node.aabb_min, leaf_tri.vertice1);
         node.aabb_min = fminf(node.aabb_min, leaf_tri.vertice2);
         node.aabb_min = fminf(node.aabb_min, leaf_tri.vertice3);
         node.aabb_max = fmaxf(node.aabb_max, leaf_tri.vertice1);
         node.aabb_max = fmaxf(node.aabb_max, leaf_tri.vertice2);
         node.aabb_max = fmaxf(node.aabb_max, leaf_tri.vertice3);
+
+        println!("min: {}, max: {}", node.aabb_min, node.aabb_max);
     }
 }
 
