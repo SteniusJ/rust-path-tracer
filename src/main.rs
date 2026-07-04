@@ -38,19 +38,32 @@ fn main() {
         cuboid_mat,
         &mut world
         );
+/*
+    let cuboid = geometry::Cuboid::new_to_world(
+        Vec3::new(1.0, 0.0, 0.0),
+        Vec3::new(-1.0, 0.0, 0.0), 
+        Vec3::new(1.0, 2.0, 0.0),
+        Vec3::new(-1.0, 2.0, 0.0),
+        Vec3::new(1.0, 0.0, -2.0),
+        Vec3::new(-1.0, 0.0, -2.0),
+        Vec3::new(1.0, 2.0, -2.0),
+        Vec3::new(-1.0, 2.0, -2.0),
+        cuboid_mat,
+        &mut world
+        );
 
-    let _cuboid_metallic = geometry::Cuboid::new_to_world(
-        Vec3::new(200.0, -3.0, 200.0),
-        Vec3::new(200.0, -3.0, -200.0),
-        Vec3::new(200.0, 0.0, 200.0),
-        Vec3::new(200.0, 0.0, -200.0),
-        Vec3::new(-200.0, -3.0, 200.0),
-        Vec3::new(-200.0, -3.0, -200.0),
-        Vec3::new(-200.0, 0.0, 200.0),
+    geometry::move_to(&mut world, &cuboid, Vec3::new(-3.0, 2.0, -3.0));
+
+    let mut floor = geometry::Plane::new_to_world(
         Vec3::new(-200.0, 0.0, -200.0),
+        Vec3::new(200.0, 0.0, -200.0),
+        Vec3::new(-200.0, 0.0, 200.0),
+        Vec3::new(200.0, 0.0, 200.0),
         metallic,
         &mut world
         );
+
+    geometry::subdivide(&mut world, &mut floor, 2);
 
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
@@ -58,12 +71,18 @@ fn main() {
         &mut world
         );
 
-    world.push(geometry::Triangle::new(
-                Vec3::new(-2.0, 1.0, 4.0),
-                Vec3::new(-2.0, 1.0, 2.0),
-                Vec3::new(-2.0, 3.0, 3.0),
+    let mut triangle = geometry::Triangle::new(
+                Vec3::new(0.0, 1.0, 4.0),
+                Vec3::new(0.0, 1.0, 2.0),
+                Vec3::new(0.0, 3.0, 3.0),
                 tri_mat
-                ));
+                );
+
+    triangle.move_to(Vec3::new(-2.0, 2.0, 3.0));
+
+    world.push(triangle);
+*/
+
 
     path_tracer::render(
         px_width,

@@ -7,8 +7,8 @@ use crate::{
 };
 
 /* Maximum stack size.
-    * 100 should be overkill for any reasonable scene.
-    */
+ * 100 should be overkill for any reasonable scene.
+ */
 static STACK_SIZE: usize = 20;
 
 #[derive(Clone, Copy)]
@@ -134,15 +134,13 @@ fn update_node_bounds(node_idx: usize, bvh_nodes: &mut Vec<BVHNode>, tri_indices
     for i in 0..node.tri_count {
         let leaf_tri_idx = tri_indices[node.first_tri_idx + i];
         let leaf_tri = tris[leaf_tri_idx];
-        println!("leaf_tri: {} {} {}", leaf_tri.vertice1, leaf_tri.vertice2, leaf_tri.vertice3);
+
         node.aabb_min = fminf(node.aabb_min, leaf_tri.vertice1);
         node.aabb_min = fminf(node.aabb_min, leaf_tri.vertice2);
         node.aabb_min = fminf(node.aabb_min, leaf_tri.vertice3);
         node.aabb_max = fmaxf(node.aabb_max, leaf_tri.vertice1);
         node.aabb_max = fmaxf(node.aabb_max, leaf_tri.vertice2);
         node.aabb_max = fmaxf(node.aabb_max, leaf_tri.vertice3);
-
-        println!("min: {}, max: {}", node.aabb_min, node.aabb_max);
     }
 }
 
@@ -157,8 +155,16 @@ fn subdivide(node_idx: usize, nodes_used: &mut usize, bvh_nodes: &mut Vec<BVHNod
     let split_pos = bvh_nodes[node_idx].aabb_min[axis] + extent[axis] * 0.5;
     let mut i = bvh_nodes[node_idx].first_tri_idx;
     let mut j = i + bvh_nodes[node_idx].tri_count - 1;
+
     while i <= j {
-        if tris[tri_indices[i]].origin[axis] < split_pos {
+        /* We need to calculate the true triangle origin here
+         * since the origin we get from a triangle (tri.origin)
+         * is it's transformation origin NOT it's true origin.
+         * BVH generation requires the true center point of the triangle
+         */
+        let tri = tris[tri_indices[i]];
+        let origin = (tri.vertice1 + tri.vertice2 + tri.vertice3) / 3.0;
+        if origin[axis] < split_pos {
             i += 1;
         } else {
             tri_indices.swap(i, j);
