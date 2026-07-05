@@ -40,11 +40,11 @@ impl Material {
             refraction_index
         }
     }
-    pub fn new_normal() -> Material {
+    pub fn new_normal(border_color: vec3::Vec3, border_treshold: f64) -> Material {
         Material {
             id: MaterialID::Normal,
-            albedo: vec3::Vec3::empty(),
-            fuzz: 0.0,
+            albedo: border_color,
+            fuzz: border_treshold,
             refraction_index: 0.0
         }
     }
@@ -86,7 +86,7 @@ pub fn scatter(ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &m
         MaterialID::Lambertian => lambertian_scatter(albedo, hit_record, attentuation, scattered, seed),
         MaterialID::Metal => metal_scatter(albedo, fuzz, ray, hit_record, attentuation, scattered, seed),
         MaterialID::Dielectric => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, seed),
-        MaterialID::Normal => normal_scatter(hit_record, attentuation, scattered, seed),
+        MaterialID::Normal => normal_scatter(hit_record, attentuation, albedo, fuzz),
         MaterialID::NONE => false,
     }
 }
@@ -194,12 +194,17 @@ fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::Hit
 /*
  * Normal material.
  * Debug material for visualization of surface normals.
+ * Also visualises triangle borders.
  */
-fn normal_scatter(rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
-    let target = rec.p + rec.surface_normal + random_in_unit_sphere(seed);
-    *scattered = ray::Ray::new(rec.p, target - rec.p);
+fn normal_scatter(rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, border_color: vec3::Vec3, border_treshold: f64) -> bool {
     let mut normal_color = rec.surface_normal.to_normalized();
     normal_color.into_positive();
+
+    if rec.uv > border_treshold && rec.uv < 1.0 {
+        *attentuation = border_color;
+        return false;
+    }
+
     *attentuation = normal_color;
-    true
+    false
 }

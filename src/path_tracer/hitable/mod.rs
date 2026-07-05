@@ -5,6 +5,7 @@ use std::fmt;
 pub struct HitRecord {
     pub t: f64,
     pub p: vec3::Vec3,
+    pub uv: f64,
     pub surface_normal: vec3::Vec3,
     pub material: materials::Material,
 }
@@ -20,6 +21,7 @@ impl HitRecord {
         Self {
             t: f64::MAX,
             p: vec3::Vec3::empty(),
+            uv: 0.0,
             surface_normal: vec3::Vec3::empty(),
             material: materials::Material::new_none()
         }

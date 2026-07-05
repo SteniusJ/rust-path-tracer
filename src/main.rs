@@ -58,14 +58,13 @@ fn main() {
         &mut world
         );
 
-    geometry::subdivide(&mut world, &mut floor, 2);
+    geometry::subdivide(&mut world, &mut floor, 6);
 
     let _custom_obj = geometry::ObjImport::new_to_world(
         "suzanne.obj",
         glass,
         &mut world
         );
-
 
     let mut triangle = geometry::Triangle::new(
                 Vec3::new(0.0, 1.0, 4.0),

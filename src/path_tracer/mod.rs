@@ -104,13 +104,11 @@ pub fn render(
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
     let npixels = px_width as u32 * px_height as u32;
 
-    println!("building bvh...");
     let (
         bvh_nodes_dev,
         tri_indices_dev,
         tris_dev
     ) = bvh::build_bvh(&stream, &world);
-    println!("bvh built!");
 
     let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
 

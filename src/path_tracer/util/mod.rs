@@ -74,3 +74,20 @@ pub fn powi_f64(base: f64, exp: i32) -> f64 {
 pub fn floor_f64(x: f64) -> f64 {
     x as i64 as f64 // lol
 }
+
+#[macro_export]
+macro_rules! midpoint {
+    ( $( $x:expr ),* ) => {
+        {
+            let mut sum = crate::path_tracer::vec3::Vec3::empty();
+            let mut count = 0_f64;
+
+            $(
+                sum += $x;
+                count += 1.0;
+            )*
+
+            sum / count
+        }
+    };
+}

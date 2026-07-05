@@ -1,11 +1,17 @@
-use crate::path_tracer::{vec3, hitable, materials, ray, util};
+use crate::path_tracer::{
+    vec3::Vec3,
+    hitable,
+    materials,
+    ray
+};
+use crate::midpoint;
 use std::fs::File;
 use std::io::Read;
 
 use cuda_core::DeviceCopy;
 
 // "Pushes" object by move_vec
-pub fn move_by(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: vec3::Vec3) {
+pub fn move_by(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: Vec3) {
     for i in 0..obj_ptr.len {
         let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
         tri.move_by(move_vec);
@@ -13,7 +19,7 @@ pub fn move_by(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: vec3::
 }
 
 // Moves object relative to its origin to target position (move_vec)
-pub fn move_to(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: vec3::Vec3) {
+pub fn move_to(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: Vec3) {
     for i in 0..obj_ptr.len {
         let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
         tri.move_to(move_vec);
@@ -41,17 +47,17 @@ pub fn subdivide(world: &mut Vec<Triangle>, obj_ptr: &mut ObjPointer, level: u8)
 }
 
 pub struct ObjPointer {
-    ptr: usize,
-    len: usize
+    pub ptr: usize,
+    pub len: usize
 }
 
 #[derive(Clone, Copy)]
 pub struct Triangle {
-    pub vertice1: vec3::Vec3,
-    pub vertice2: vec3::Vec3,
-    pub vertice3: vec3::Vec3,
-    pub origin: vec3::Vec3,
-    pub normal: vec3::Vec3,
+    pub vertice1: Vec3,
+    pub vertice2: Vec3,
+    pub vertice3: Vec3,
+    pub origin: Vec3,
+    pub normal: Vec3,
     pub material: materials::Material,
 }
 
@@ -73,17 +79,17 @@ impl Triangle {
      * 1/___________\3
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: materials::Material) -> Triangle {
+    pub fn new(v1: Vec3, v2: Vec3, v3: Vec3, material: materials::Material) -> Triangle {
         Triangle {
             vertice1: v1,
             vertice2: v2,
             vertice3: v3,
-            origin: (v1 + v2 + v3) / 3.0,
+            origin: midpoint!(v1, v2, v3),
             normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
             material
         }
     }
-    pub fn new_with_origin(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, material: materials::Material, origin: vec3::Vec3) -> Triangle {
+    pub fn new_with_origin(v1: Vec3, v2: Vec3, v3: Vec3, material: materials::Material, origin: Vec3) -> Triangle {
         Triangle {
             vertice1: v1,
             vertice2: v2,
@@ -122,6 +128,7 @@ impl Triangle {
             rec.surface_normal = self.normal;
             rec.p = int_point;
             rec.t = (ray.origin - int_point).len();
+            rec.uv = u + v;
             rec.material = self.material;
 
             return true;
@@ -129,12 +136,12 @@ impl Triangle {
         
         false
     }
-    pub fn move_by(&mut self, move_vec: vec3::Vec3) {
+    pub fn move_by(&mut self, move_vec: Vec3) {
         self.vertice1 += move_vec;
         self.vertice2 += move_vec;
         self.vertice3 += move_vec;
     }
-    pub fn move_to(&mut self, move_vec: vec3::Vec3) {
+    pub fn move_to(&mut self, move_vec: Vec3) {
         let original_origin = self.origin;
         self.origin = move_vec;
 
@@ -169,26 +176,28 @@ impl Triangle {
             let mut current_subdivision: Vec<Triangle> = Vec::with_capacity(current_level as usize * 2);
 
             for tri in &subdivided {
-                let midpoint = (tri.vertice1 + tri.vertice3) / 2.0;
+                let midpoint = midpoint!(tri.vertice2, tri.vertice3);
 
                 current_subdivision.push(
-                    Triangle::new_with_origin(
-                        tri.vertice1,
-                        tri.vertice2,
-                        midpoint,
-                        tri.material,
-                        tri.origin
-                        )
-                    );
+                    Triangle {
+                        vertice1: midpoint,
+                        vertice2: tri.vertice2,
+                        vertice3: tri.vertice1,
+                        origin: tri.origin,
+                        normal: tri.normal,
+                        material: tri.material
+                    }
+                );
                 current_subdivision.push(
-                    Triangle::new_with_origin(
-                        midpoint,
-                        tri.vertice2,
-                        tri.vertice3,
-                        tri.material,
-                        tri.origin
-                        )
-                    );
+                    Triangle {
+                        vertice1: midpoint,
+                        vertice2: tri.vertice1,
+                        vertice3: tri.vertice3,
+                        origin: tri.origin,
+                        normal: tri.normal,
+                        material: tri.material
+                    }
+                );
             }
 
             subdivided = current_subdivision;
@@ -215,17 +224,17 @@ impl Plane {
      * |        |
      * 1--------2
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material) -> Plane {
-        let origin = (v1 + v2 + v3 + v4) / 4.0;
+    pub fn new(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, material: materials::Material) -> Plane {
+        let origin = midpoint!(v1, v2, v3, v4);
         let mut triangles: Vec<Triangle> = Vec::with_capacity(2);
-        triangles.push(Triangle::new_with_origin(v1, v3, v2, material, origin));
-        triangles.push(Triangle::new_with_origin(v3, v4, v2, material, origin));
+        triangles.push(Triangle::new_with_origin(v2, v1, v3, material, origin));
+        triangles.push(Triangle::new_with_origin(v2, v3, v4, material, origin));
 
         Plane {
             triangles,
         }
     }
-    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
+    pub fn new_to_world(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
         let plane = Plane::new(v1, v2, v3, v4, material);
 
         world.reserve(2);
@@ -238,10 +247,10 @@ impl Plane {
             len: 2
         }
     }
-    fn new_with_origin(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, material: materials::Material, origin: vec3::Vec3) -> Plane {
+    fn new_with_origin(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, material: materials::Material, origin: Vec3) -> Plane {
         let mut triangles: Vec<Triangle> = Vec::with_capacity(2);
         triangles.push(Triangle::new_with_origin(v1, v3, v2, material, origin));
-        triangles.push(Triangle::new_with_origin(v3, v4, v2, material, origin));
+        triangles.push(Triangle::new_with_origin(v4, v2, v3, material, origin));
 
         Plane {
             triangles,
@@ -269,8 +278,8 @@ impl Cuboid {
      * 1/_______2/
      *
      */
-    pub fn new(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material) -> Cuboid {
-        let origin = (v1 + v2 + v3 + v4 + v5 + v6 + v7 + v8) / 8.0;
+    pub fn new(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, v5: Vec3, v6: Vec3, v7: Vec3, v8: Vec3, material: materials::Material) -> Cuboid {
+        let origin = midpoint!(v1, v2, v3, v4, v5, v6, v7, v8);
         let mut triangles: Vec<Triangle> = Vec::with_capacity(12);
 
         for tri in Plane::new_with_origin(v1, v2, v3, v4, material, origin).triangles {
@@ -296,7 +305,7 @@ impl Cuboid {
             triangles
         }
     } 
-    pub fn new_to_world(v1: vec3::Vec3, v2: vec3::Vec3, v3: vec3::Vec3, v4: vec3::Vec3, v5: vec3::Vec3, v6: vec3::Vec3, v7: vec3::Vec3, v8: vec3::Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
+    pub fn new_to_world(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, v5: Vec3, v6: Vec3, v7: Vec3, v8: Vec3, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
         let cuboid = Cuboid::new(v1, v2, v3, v4, v5, v6, v7, v8, material);
 
         world.reserve(12);
@@ -324,7 +333,7 @@ impl ObjImport {
         let mut triangles: Vec<Triangle> = Vec::new();
         let mut import_file = File::open(file_name).unwrap();
         let mut file_contents = String::new();
-        let mut vertices: Vec<vec3::Vec3> = Vec::new();
+        let mut vertices: Vec<Vec3> = Vec::new();
 
         import_file.read_to_string(&mut file_contents).unwrap();
 
@@ -337,7 +346,7 @@ impl ObjImport {
                     let y = vertex_data[2].parse::<f64>().unwrap();
                     let z = vertex_data[3].parse::<f64>().unwrap();
 
-                    vertices.push(vec3::Vec3::new(x, y, z));
+                    vertices.push(Vec3::new(x, y, z));
                 },
                 "f" => {
                     // If triangles vector has no pushes reserves an aproximated amount of memory
@@ -364,7 +373,7 @@ impl ObjImport {
         }
 
         let origin = {
-            let mut origin = vec3::Vec3::empty();
+            let mut origin = Vec3::empty();
 
             for tri in &triangles {
                 origin += tri.origin;
