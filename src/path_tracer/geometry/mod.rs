@@ -29,6 +29,13 @@ pub fn move_to(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: Vec3) 
 /* Subdivides object "level" times
  *
  * This function only subdivides the mesh and does not smooth it
+ *
+ * WARNING!
+ * Current implementation of the subdivide function includes a major bug related to the function of
+ * the object pointers. Since the subdivide function drains the mesh from the world vector it shifts
+ * all objects that come after it in the vector causing their pointers to become incorrect.
+ * I won't bother fixing this bug since it requires a rewrite of how objects and their pointers are
+ * handled.
  */
 pub fn subdivide(world: &mut Vec<Triangle>, obj_ptr: &mut ObjPointer, level: u8) {
     let obj_start = world.len() - obj_ptr.len;
