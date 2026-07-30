@@ -127,22 +127,24 @@ samples: {samples}\n",
         );
     }
 
-    module.
-        render(
-            &stream,
-            LaunchConfig::for_num_elems(npixels),
-            &tris_dev,
-            &bvh_nodes_dev,
-            &tri_indices_dev,
-            camera.into_gpu_arg(),
-            samples,
-            px_width,
-            px_height,
-            depth,
-            seed,
-            &mut out_dev
-            )
-        .expect("Kernel launch failed");
+    unsafe {
+        module.
+            render(
+                &stream,
+                LaunchConfig::for_num_elems(npixels),
+                &tris_dev,
+                &bvh_nodes_dev,
+                &tri_indices_dev,
+                camera.into_gpu_arg(),
+                samples,
+                px_width,
+                px_height,
+                depth,
+                seed,
+                &mut out_dev
+                )
+            .expect("Kernel launch failed");
+    }
 
     let out = out_dev.to_host_vec(&stream).unwrap();
 
