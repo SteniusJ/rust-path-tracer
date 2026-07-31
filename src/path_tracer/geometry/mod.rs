@@ -7,6 +7,7 @@ use crate::path_tracer::{
 use crate::midpoint;
 use std::fs::File;
 use std::io::Read;
+use std::f64::consts::GOLDEN_RATIO;
 
 use cuda_core::DeviceCopy;
 
@@ -103,6 +104,16 @@ impl Triangle {
             vertice3: v3,
             origin,
             normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
+            material
+        }
+    }
+    pub fn new_with_origin_normal(v1: Vec3, v2: Vec3, v3: Vec3, material: materials::Material, origin: Vec3, normal: Vec3) -> Triangle {
+        Triangle {
+            vertice1: v1,
+            vertice2: v2,
+            vertice3: v3,
+            origin,
+            normal: normal,
             material
         }
     }
@@ -323,6 +334,268 @@ impl Cuboid {
         ObjPointer {
             ptr: world.len() - 12,
             len: 12
+        }
+    }
+}
+
+pub struct Sphere {
+    pub triangles: Vec<Triangle>,
+}
+
+impl Sphere {
+    pub fn new(origin: Vec3, radius: f64, subdivisions: u8, material: materials::Material) -> Sphere {
+        /* Desmos 3D proof:
+         * https://www.desmos.com/3d/cvponkyov9
+         *
+         * NOTE:
+         * Sphere currently feels slightly squished, some maths probably don't line up with the
+         * expected. Desmos is ground truth use that as reference for the fix.
+         */
+        let mut triangles: Vec<Triangle> = Vec::new();
+
+        let a = f64::sqrt(radius / (radius + (GOLDEN_RATIO * GOLDEN_RATIO)));
+        let c = a * GOLDEN_RATIO;
+
+        // Generate reference planes for icosphere generation
+        let ref_plane_1 = (
+            Vec3::new(-c, a, 0.0) + origin,
+            Vec3::new(c, a, 0.0) + origin,
+            Vec3::new(-c, -a, 0.0) + origin,
+            Vec3::new(c, -a, 0.0) + origin,
+            );
+        let ref_plane_2 = (
+            Vec3::new(a, 0.0, -c) + origin,
+            Vec3::new(a, 0.0, c) + origin,
+            Vec3::new(-a, 0.0, -c) + origin,
+            Vec3::new(-a, 0.0, c) + origin,
+            );
+        let ref_plane_3 = (
+            Vec3::new(0.0, -c, a) + origin,
+            Vec3::new(0.0, c, a) + origin,
+            Vec3::new(0.0, -c, -a) + origin,
+            Vec3::new(0.0, c, -a) + origin,
+            );
+
+        /* Manually generate the grounding icosphere triangles
+         *
+         * I have opted to generate the normals here since I'm not bothering with correctly placing
+         * these vertices
+         */
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_3.1,
+                ref_plane_2.1,
+                ref_plane_2.3,
+                material,
+                origin,
+                midpoint!(ref_plane_3.1, ref_plane_2.1, ref_plane_2.3) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.3,
+                ref_plane_3.0,
+                ref_plane_2.1,
+                material,
+                origin,
+                midpoint!(ref_plane_2.3, ref_plane_3.0, ref_plane_2.1) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.3,
+                ref_plane_1.0,
+                ref_plane_1.2,
+                material,
+                origin,
+                midpoint!(ref_plane_2.3, ref_plane_1.0, ref_plane_1.2) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.3,
+                ref_plane_3.0,
+                ref_plane_1.2,
+                material,
+                origin,
+                midpoint!(ref_plane_2.3, ref_plane_3.0, ref_plane_1.2) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_3.2,
+                ref_plane_3.0,
+                ref_plane_1.2,
+                material,
+                origin,
+                midpoint!(ref_plane_3.2, ref_plane_3.0, ref_plane_1.2) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal( 
+                ref_plane_3.2,
+                ref_plane_3.0,
+                ref_plane_1.3,
+                material,
+                origin,
+                midpoint!(ref_plane_3.2, ref_plane_3.0, ref_plane_1.3) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.1,
+                ref_plane_3.0,
+                ref_plane_1.3,
+                material,
+                origin,
+                midpoint!(ref_plane_2.1, ref_plane_3.0, ref_plane_1.3) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.1,
+                ref_plane_1.1,
+                ref_plane_1.3,
+                material,
+                origin,
+                midpoint!(ref_plane_2.1, ref_plane_1.1, ref_plane_1.3) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.1,
+                ref_plane_1.1,
+                ref_plane_3.1,
+                material,
+                origin,
+                midpoint!(ref_plane_2.1, ref_plane_1.1, ref_plane_3.1) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_3.3,
+                ref_plane_1.1,
+                ref_plane_3.1,
+                material,
+                origin,
+                midpoint!(ref_plane_3.3, ref_plane_1.1, ref_plane_3.1) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_3.3,
+                ref_plane_1.0,
+                ref_plane_3.1,
+                material,
+                origin,
+                midpoint!(ref_plane_3.3, ref_plane_1.0, ref_plane_3.1) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.3,
+                ref_plane_1.0,
+                ref_plane_3.1,
+                material,
+                origin,
+                midpoint!(ref_plane_2.3, ref_plane_1.0, ref_plane_3.1) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_1.0,
+                ref_plane_3.3,
+                ref_plane_2.2,
+                material,
+                origin,
+                midpoint!(ref_plane_1.0, ref_plane_3.3, ref_plane_2.2) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_1.0,
+                ref_plane_1.2,
+                ref_plane_2.2,
+                material,
+                origin,
+                midpoint!(ref_plane_1.0, ref_plane_1.2, ref_plane_2.2) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_3.2,
+                ref_plane_1.2,
+                ref_plane_2.2,
+                material,
+                origin,
+                midpoint!(ref_plane_3.2, ref_plane_1.2, ref_plane_2.2) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_3.2,
+                ref_plane_2.0,
+                ref_plane_2.2,
+                material,
+                origin,
+                midpoint!(ref_plane_3.2, ref_plane_2.0, ref_plane_2.2) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_3.2,
+                ref_plane_2.0,
+                ref_plane_1.3,
+                material,
+                origin,
+                midpoint!(ref_plane_3.2, ref_plane_2.0, ref_plane_1.3) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_1.1,
+                ref_plane_2.0,
+                ref_plane_1.3,
+                material,
+                origin,
+                midpoint!(ref_plane_1.1, ref_plane_2.0, ref_plane_1.3) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_1.1,
+                ref_plane_2.0,
+                ref_plane_3.3,
+                material,
+                origin,
+                midpoint!(ref_plane_1.1, ref_plane_2.0, ref_plane_3.3) - origin
+                )
+            );
+        triangles.push(
+            Triangle::new_with_origin_normal(
+                ref_plane_2.2,
+                ref_plane_2.0,
+                ref_plane_3.3,
+                material,
+                origin,
+                midpoint!(ref_plane_2.2, ref_plane_2.0, ref_plane_3.3) - origin
+                )
+            );
+
+        Sphere { triangles }
+    }
+    pub fn new_to_world(origin: Vec3, radius: f64, subdivisions: u8, material: materials::Material, world: &mut Vec<Triangle>) -> ObjPointer {
+        let sphere = Sphere::new(origin, radius, subdivisions, material);
+        let sphere_len = sphere.triangles.len();
+
+        world.reserve(sphere.triangles.len());
+        for tri in sphere.triangles {
+            world.push(tri);
+        }
+
+        ObjPointer {
+            ptr: world.len() - sphere_len,
+            len: sphere_len
         }
     }
 }
