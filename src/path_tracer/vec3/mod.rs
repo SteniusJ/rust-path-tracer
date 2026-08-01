@@ -63,6 +63,19 @@ impl Vec3 {
             self.z = -self.z;
         }
     }
+    pub fn slerp(self, other: Vec3, t: f64) -> Vec3 {
+        /* Geometric slerp formula
+         *
+         * sin[(1 - t) * omega]        sin[t * omega]
+         * -------------------- * p0 + ------------- * p1
+         *      sin[omega]              sin[omega]
+         * 
+         * where p0/p1 is point 0 and 1 (self, other)
+         * where "omega" is ( cos[omega] = dot[p0, p1] ) = ( omega = arccos[dot[p0, p1]] )
+         */
+        let omega = f64::acos(self.dot(&other));
+        (f64::sin((1.0 - t) * omega) / f64::sin(omega)) * self + (f64::sin(t * omega) / f64::sin(omega)) * other
+    }
 }
 
 impl fmt::Display for Vec3 {
@@ -75,7 +88,7 @@ impl ops::Neg for Vec3 {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
-        Vec3{
+        Self::Output {
             x: -self.x,
             y: -self.y,
             z: -self.z
@@ -86,8 +99,8 @@ impl ops::Neg for Vec3 {
 impl ops::Sub for Vec3 {
     type Output = Self;
 
-    fn sub(self, other: Self) -> Self {
-        Self {
+    fn sub(self, other: Self) -> Self::Output {
+        Self::Output {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z
@@ -98,8 +111,8 @@ impl ops::Sub for Vec3 {
 impl ops::Add for Vec3 {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self {
-        Self {
+    fn add(self, other: Self) -> Self::Output {
+        Self::Output {
             x: self.x + other.x,
             y: self.y + other.y,
             z: self.z + other.z
@@ -119,7 +132,15 @@ impl ops::Mul<f64> for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        Self { x: self.x * rhs, y: self.y * rhs, z: self.z * rhs }
+        Self::Output { x: self.x * rhs, y: self.y * rhs, z: self.z * rhs }
+    }
+}
+
+impl ops::Mul<f64> for &Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self::Output { x: self.x * rhs, y: self.y * rhs, z: self.z * rhs }
     }
 }
 
@@ -127,7 +148,7 @@ impl ops::Mul<Vec3> for f64 {
     type Output = Vec3;
 
     fn mul(self, rhs: Vec3) -> Self::Output {
-        Vec3 { x: rhs.x * self, y: rhs.y * self, z: rhs.z * self }
+        Self::Output { x: rhs.x * self, y: rhs.y * self, z: rhs.z * self }
     }
 }
 
@@ -135,7 +156,7 @@ impl ops::Mul for Vec3 {
     type Output = Self;
 
     fn mul(self, rhs: Vec3) -> Self::Output {
-        Self { x: self.x * rhs.x, y: self.y * rhs.y, z: self.z * rhs.z }
+        Self::Output { x: self.x * rhs.x, y: self.y * rhs.y, z: self.z * rhs.z }
     }
 }
 
@@ -151,7 +172,7 @@ impl ops::Div for Vec3 {
     type Output = Self;
 
     fn div(self, rhs: Vec3) -> Self::Output {
-        Self { x: self.x / rhs.x, y: self.y / rhs.y, z: self.z / rhs.z }
+        Self::Output { x: self.x / rhs.x, y: self.y / rhs.y, z: self.z / rhs.z }
     }
 }
 
@@ -159,7 +180,7 @@ impl ops::Div<f64> for Vec3 {
     type Output = Self;
 
     fn div(self, rhs: f64) -> Self::Output {
-        Self { x: self.x / rhs, y: self.y / rhs, z: self.z / rhs }
+        Self::Output { x: self.x / rhs, y: self.y / rhs, z: self.z / rhs }
     }
 }
 

@@ -65,7 +65,7 @@ fn main() {
         glass,
         &mut world
         );
-/*
+
     let mut triangle = geometry::Triangle::new(
                 Vec3::new(0.0, 1.0, 4.0),
                 Vec3::new(0.0, 1.0, 2.0),
@@ -74,14 +74,6 @@ fn main() {
                 );
     triangle.move_to(Vec3::new(-2.0, 2.0, 3.0));
     world.push(triangle);
-*/
-    let _sphere = geometry::Sphere::new_to_world(
-        Vec3::new(-2.0, 2.0, 3.0),
-        1.0,
-        1,
-        tri_mat,
-        &mut world
-        );
 
     let ctx = CudaContext::new(0).expect("Failed to create CUDA context");
     let stream = ctx.default_stream();

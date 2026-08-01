@@ -350,6 +350,14 @@ impl Sphere {
          * NOTE:
          * Sphere currently feels slightly squished, some maths probably don't line up with the
          * expected. Desmos is ground truth use that as reference for the fix.
+         *
+         * Seems like the sphere isn't oval, at least the areas are the same on all the triangles
+         * and the math doesn't veer from the "ground truth". Probably just perspective distortions.
+         *
+         * NOTE:
+         * Sphere subdivisions cause gaps to appear between triangles, these are apparent up to
+         * level 3 after which they dissapear due to the triangles being too small. I am not sure
+         * where this error appears from (possibly slerp function).
          */
         let mut triangles: Vec<Triangle> = Vec::new();
 
@@ -581,6 +589,60 @@ impl Sphere {
                 midpoint!(ref_plane_2.2, ref_plane_2.0, ref_plane_3.3) - origin
                 )
             );
+
+        // handle subdividing
+        for _ in 0..subdivisions {
+            let mut working_triangles: Vec<Triangle> = Vec::new();
+
+            for tri in &triangles {
+                let v4 = tri.vertice1.slerp(tri.vertice2, 0.5);
+                let v5 = tri.vertice2.slerp(tri.vertice3, 0.5);
+                let v6 = tri.vertice3.slerp(tri.vertice1, 0.5);
+
+                working_triangles.push(
+                    Triangle {
+                        vertice1: tri.vertice1,
+                        vertice2: v4,
+                        vertice3: v6,
+                        origin,
+                        normal: midpoint!(tri.vertice1, v4, v6) - origin,
+                        material
+                    }
+                    );
+                working_triangles.push(
+                    Triangle {
+                        vertice1: v4,
+                        vertice2: v5,
+                        vertice3: v6,
+                        origin,
+                        normal: midpoint!(v4, v5, v6) - origin,
+                        material
+                    }
+                    );
+                working_triangles.push(
+                    Triangle {
+                        vertice1: v5,
+                        vertice2: tri.vertice3,
+                        vertice3: v6,
+                        origin,
+                        normal: midpoint!(v5, tri.vertice3, v6) - origin,
+                        material
+                    }
+                    );
+                working_triangles.push(
+                    Triangle {
+                        vertice1: v4,
+                        vertice2: tri.vertice2,
+                        vertice3: v5,
+                        origin,
+                        normal: midpoint!(v4, tri.vertice2, v5) - origin,
+                        material
+                    }
+                    );
+            }
+
+            triangles = working_triangles;
+        }
 
         Sphere { triangles }
     }
