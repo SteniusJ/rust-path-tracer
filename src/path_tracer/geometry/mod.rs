@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::path_tracer::{
     vec3::Vec3,
     hitable,
@@ -12,7 +14,7 @@ use std::f64::consts::GOLDEN_RATIO;
 use cuda_core::DeviceCopy;
 
 // "Pushes" object by move_vec
-pub fn move_by(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: Vec3) {
+pub fn move_by(world: &mut [Triangle], obj_ptr: &ObjPointer, move_vec: Vec3) {
     for i in 0..obj_ptr.len {
         let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
         tri.move_by(move_vec);
@@ -20,7 +22,7 @@ pub fn move_by(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: Vec3) 
 }
 
 // Moves object relative to its origin to target position (move_vec)
-pub fn move_to(world: &mut Vec<Triangle>, obj_ptr: &ObjPointer, move_vec: Vec3) {
+pub fn move_to(world: &mut [Triangle], obj_ptr: &ObjPointer, move_vec: Vec3) {
     for i in 0..obj_ptr.len {
         let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
         tri.move_to(move_vec);
@@ -93,7 +95,7 @@ impl Triangle {
             vertice2: v2,
             vertice3: v3,
             origin: midpoint!(v1, v2, v3),
-            normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
+            normal: (v2 - v1).cross(&(v3 - v1)).normalized(),
             material
         }
     }
@@ -103,7 +105,7 @@ impl Triangle {
             vertice2: v2,
             vertice3: v3,
             origin,
-            normal: (v2 - v1).cross(&(v3 - v1)).to_normalized(),
+            normal: (v2 - v1).cross(&(v3 - v1)).normalized(),
             material
         }
     }
@@ -113,12 +115,12 @@ impl Triangle {
             vertice2: v2,
             vertice3: v3,
             origin,
-            normal: normal,
+            normal,
             material
         }
     }
     pub fn hit(&self, ray: &ray::Ray, _t_min: f64, _t_max: f64, rec: &mut hitable::HitRecord) -> bool {
-        let r_dir = ray.direction.to_normalized();
+        let r_dir = ray.direction.normalized();
 
         if self.normal.dot(&r_dir) > 0.0 {
             return false;
@@ -187,8 +189,7 @@ impl Triangle {
      * this method consumes the original triangle
      */
     pub fn subdivide(self, level: u8) -> Vec<Triangle> {
-        let mut subdivided: Vec<Triangle> = Vec::new();
-        subdivided.push(self);
+        let mut subdivided = vec![self];
 
         for current_level in 0..level {
             let mut current_subdivision: Vec<Triangle> = Vec::with_capacity(current_level as usize * 2);
@@ -244,9 +245,10 @@ impl Plane {
      */
     pub fn new(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, material: materials::Material) -> Plane {
         let origin = midpoint!(v1, v2, v3, v4);
-        let mut triangles: Vec<Triangle> = Vec::with_capacity(2);
-        triangles.push(Triangle::new_with_origin(v2, v1, v3, material, origin));
-        triangles.push(Triangle::new_with_origin(v2, v3, v4, material, origin));
+        let triangles = vec![
+            Triangle::new_with_origin(v2, v1, v3, material, origin),
+            Triangle::new_with_origin(v2, v3, v4, material, origin)
+        ];
 
         Plane {
             triangles,
@@ -266,9 +268,10 @@ impl Plane {
         }
     }
     fn new_with_origin(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, material: materials::Material, origin: Vec3) -> Plane {
-        let mut triangles: Vec<Triangle> = Vec::with_capacity(2);
-        triangles.push(Triangle::new_with_origin(v1, v3, v2, material, origin));
-        triangles.push(Triangle::new_with_origin(v4, v2, v3, material, origin));
+        let triangles = vec![
+            Triangle::new_with_origin(v1, v3, v2, material, origin),
+            Triangle::new_with_origin(v4, v2, v3, material, origin)
+        ];
 
         Plane {
             triangles,
@@ -359,8 +362,6 @@ impl Sphere {
          * level 3 after which they dissapear due to the triangles being too small. I am not sure
          * where this error appears from (possibly slerp function).
          */
-        let mut triangles: Vec<Triangle> = Vec::new();
-
         let a = f64::sqrt(radius / (radius + (GOLDEN_RATIO * GOLDEN_RATIO)));
         let c = a * GOLDEN_RATIO;
 
@@ -389,7 +390,7 @@ impl Sphere {
          * I have opted to generate the normals here since I'm not bothering with correctly placing
          * these vertices
          */
-        triangles.push(
+        let mut triangles = vec![
             Triangle::new_with_origin_normal(
                 ref_plane_3.1,
                 ref_plane_2.1,
@@ -397,9 +398,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.1, ref_plane_2.1, ref_plane_2.3) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.3,
                 ref_plane_3.0,
@@ -407,9 +406,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.3, ref_plane_3.0, ref_plane_2.1) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.3,
                 ref_plane_1.0,
@@ -417,9 +414,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.3, ref_plane_1.0, ref_plane_1.2) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.3,
                 ref_plane_3.0,
@@ -427,9 +422,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.3, ref_plane_3.0, ref_plane_1.2) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_3.2,
                 ref_plane_3.0,
@@ -437,9 +430,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.2, ref_plane_3.0, ref_plane_1.2) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal( 
                 ref_plane_3.2,
                 ref_plane_3.0,
@@ -447,9 +438,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.2, ref_plane_3.0, ref_plane_1.3) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.1,
                 ref_plane_3.0,
@@ -457,9 +446,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.1, ref_plane_3.0, ref_plane_1.3) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.1,
                 ref_plane_1.1,
@@ -467,9 +454,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.1, ref_plane_1.1, ref_plane_1.3) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.1,
                 ref_plane_1.1,
@@ -477,9 +462,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.1, ref_plane_1.1, ref_plane_3.1) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_3.3,
                 ref_plane_1.1,
@@ -487,9 +470,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.3, ref_plane_1.1, ref_plane_3.1) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_3.3,
                 ref_plane_1.0,
@@ -497,9 +478,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.3, ref_plane_1.0, ref_plane_3.1) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.3,
                 ref_plane_1.0,
@@ -507,9 +486,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.3, ref_plane_1.0, ref_plane_3.1) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_1.0,
                 ref_plane_3.3,
@@ -517,9 +494,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_1.0, ref_plane_3.3, ref_plane_2.2) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_1.0,
                 ref_plane_1.2,
@@ -527,9 +502,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_1.0, ref_plane_1.2, ref_plane_2.2) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_3.2,
                 ref_plane_1.2,
@@ -537,9 +510,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.2, ref_plane_1.2, ref_plane_2.2) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_3.2,
                 ref_plane_2.0,
@@ -547,9 +518,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.2, ref_plane_2.0, ref_plane_2.2) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_3.2,
                 ref_plane_2.0,
@@ -557,9 +526,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_3.2, ref_plane_2.0, ref_plane_1.3) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_1.1,
                 ref_plane_2.0,
@@ -567,9 +534,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_1.1, ref_plane_2.0, ref_plane_1.3) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_1.1,
                 ref_plane_2.0,
@@ -577,9 +542,7 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_1.1, ref_plane_2.0, ref_plane_3.3) - origin
-                )
-            );
-        triangles.push(
+                ),
             Triangle::new_with_origin_normal(
                 ref_plane_2.2,
                 ref_plane_2.0,
@@ -587,8 +550,8 @@ impl Sphere {
                 material,
                 origin,
                 midpoint!(ref_plane_2.2, ref_plane_2.0, ref_plane_3.3) - origin
-                )
-            );
+                ),
+        ];
 
         // handle subdividing
         for _ in 0..subdivisions {
@@ -721,7 +684,7 @@ impl ObjImport {
                 origin += tri.origin;
             }
 
-            origin = origin / triangles.len() as f64;
+            origin /= triangles.len() as f64;
 
             origin
         };

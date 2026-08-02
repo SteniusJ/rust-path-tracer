@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::path_tracer::vec3;
 
 #[derive(Clone, Copy)]

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::path_tracer::{ray, vec3, hitable, util};
 
 use cuda_device::device;
@@ -8,7 +10,7 @@ pub enum MaterialID {
     Metal,
     Dielectric,
     Normal,
-    NONE
+    None
 }
 
 /*
@@ -65,7 +67,7 @@ impl Material {
     }
     pub fn new_none() -> Material {
         Material {
-            id: MaterialID::NONE,
+            id: MaterialID::None,
             albedo: vec3::Vec3::empty(),
             fuzz: 0.0,
             refraction_index: 0.0
@@ -87,7 +89,7 @@ pub fn scatter(ray: &ray::Ray, hit_record: &hitable::HitRecord, attentuation: &m
         MaterialID::Metal => metal_scatter(albedo, fuzz, ray, hit_record, attentuation, scattered, seed),
         MaterialID::Dielectric => dielectric_scatter(refraction_index, ray, hit_record, attentuation, scattered, seed),
         MaterialID::Normal => normal_scatter(hit_record, attentuation, albedo, fuzz),
-        MaterialID::NONE => false,
+        MaterialID::None => false,
     }
 }
 
@@ -96,15 +98,15 @@ pub fn reflect(v: &vec3::Vec3, n: &vec3::Vec3) -> vec3::Vec3 {
 }
 
 pub fn refract(v: &vec3::Vec3, n: &vec3::Vec3, ni_over_nt: &f64, refracted: &mut vec3::Vec3) -> bool {
-    let uv = v.to_normalized();
+    let uv = v.normalized();
     let dt = uv.dot(n);
     let discriminant = 1.0 - ni_over_nt * ni_over_nt * (1.0 - dt * dt);
 
     if discriminant > 0.0 {
         *refracted = *ni_over_nt * (uv - *n * dt) - *n * util::sqrt_f64(discriminant);
-        return true;
+        true
     } else {
-        return false;
+        false
     }
 }
 
@@ -146,10 +148,10 @@ fn lambertian_scatter(albedo: vec3::Vec3, rec: &hitable::HitRecord, attentuation
  * 0.0 fuzz == mirror like perfect reflection.
  */
 fn metal_scatter(albedo: vec3::Vec3, fuzz: f64, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
-    let reflected = reflect(&r_in.direction.to_normalized(), &rec.surface_normal);
+    let reflected = reflect(&r_in.direction.normalized(), &rec.surface_normal);
     *scattered = ray::Ray::new(rec.p, reflected + fuzz * random_in_unit_sphere(seed));
     *attentuation = albedo;
-    return scattered.direction.dot(&rec.surface_normal) > 0.0;
+    scattered.direction.dot(&rec.surface_normal) > 0.0
 }
 
 /*
@@ -157,30 +159,29 @@ fn metal_scatter(albedo: vec3::Vec3, fuzz: f64, r_in: &ray::Ray, rec: &hitable::
  * Glass like material. Accurate glass like material with refraction_index = 1.5.
  */
 fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, scattered: &mut ray::Ray, seed: &mut u32) -> bool {
-    let outward_normal: vec3::Vec3;
-    let ni_over_nt: f64;
-    let reflect_prob: f64;
-    let cosine: f64;
     let reflected = reflect(&r_in.direction, &rec.surface_normal);
     let mut refracted = vec3::Vec3::empty();
-
     *attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
 
-    if r_in.direction.dot(&rec.surface_normal) > 0.0 {
-        outward_normal = -rec.surface_normal;
-        ni_over_nt = refraction_index;
-        cosine = refraction_index * r_in.direction.dot(&rec.surface_normal) / r_in.direction.len();
+    let (outward_normal, ni_over_nt, cosine) = if r_in.direction.dot(&rec.surface_normal) > 0.0 {
+        (
+            -rec.surface_normal,
+            refraction_index,
+            refraction_index * r_in.direction.dot(&rec.surface_normal) / r_in.direction.len()
+            )
     } else {
-        outward_normal = rec.surface_normal;
-        ni_over_nt = 1.0 / refraction_index;
-        cosine = -r_in.direction.dot(&rec.surface_normal) / r_in.direction.len();
-    }
+        (
+            rec.surface_normal,
+            1.0 / refraction_index,
+            -r_in.direction.dot(&rec.surface_normal) / r_in.direction.len()
+            )
+    };
 
-    if refract(&r_in.direction, &outward_normal, &ni_over_nt, &mut refracted) {
-        reflect_prob = schlick(&cosine, &refraction_index);
+    let reflect_prob = if refract(&r_in.direction, &outward_normal, &ni_over_nt, &mut refracted) {
+        schlick(&cosine, &refraction_index)
     } else {
-        reflect_prob = 1.0;
-    }
+        1.0
+    };
 
     if util::randf(seed) < reflect_prob {
         *scattered = ray::Ray::new(rec.p, reflected);
@@ -197,8 +198,8 @@ fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::Hit
  * Also visualises triangle borders.
  */
 fn normal_scatter(rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, border_color: vec3::Vec3, border_treshold: f64) -> bool {
-    let mut normal_color = rec.surface_normal.to_normalized();
-    normal_color.into_positive();
+    let normal_color = rec.surface_normal.normalized();
+    normal_color.to_positive();
 
     if rec.uv > border_treshold && rec.uv < 1.0 {
         *attentuation = border_color;

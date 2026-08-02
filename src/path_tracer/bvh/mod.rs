@@ -17,7 +17,7 @@ use std::sync::Arc;
 static STACK_SIZE: usize = 20;
 
 #[derive(Clone, Copy)]
-pub struct BVHNode {
+pub struct BvhNode {
     aabb_min: Vec3,
     aabb_max: Vec3,
     left_node: usize,
@@ -25,9 +25,9 @@ pub struct BVHNode {
     tri_count: usize,
 }
 
-unsafe impl DeviceCopy for BVHNode {}
+unsafe impl DeviceCopy for BvhNode {}
 
-impl BVHNode {
+impl BvhNode {
     pub fn empty() -> Self {
         Self {
             aabb_min: Vec3::empty(),
@@ -42,15 +42,15 @@ impl BVHNode {
     }
 }
 
-pub struct BVH<'a> {
-    nodes: &'a[BVHNode],
+pub struct Bvh<'a> {
+    nodes: &'a[BvhNode],
     tri_indices: &'a[usize],
     tris: &'a[Triangle]
 }
 
-impl<'a> BVH<'a> {
-    pub fn new(nodes: &'a[BVHNode], tri_indices: &'a[usize], tris: &'a[Triangle]) -> Self {
-        BVH { nodes, tri_indices, tris }
+impl<'a> Bvh<'a> {
+    pub fn new(nodes: &'a[BvhNode], tri_indices: &'a[usize], tris: &'a[Triangle]) -> Self {
+        Bvh { nodes, tri_indices, tris }
     }
     pub fn intersect(&self, ray: &Ray, hit_rec: &mut HitRecord) -> bool {
         let mut stack = [0; STACK_SIZE];
@@ -114,13 +114,13 @@ fn intersect_aabb(ray: &Ray, t: f64, b_min: Vec3, b_max: Vec3) -> bool {
     tmax >= tmin && tmin < t && tmax > 0.0
 }
 
-pub fn build_bvh(stream: &Arc<CudaStream>, tris: &Vec<Triangle>) -> (DeviceBuffer<BVHNode>, DeviceBuffer<usize>, DeviceBuffer<Triangle>) {
+pub fn build_bvh(stream: &Arc<CudaStream>, tris: &Vec<Triangle>) -> (DeviceBuffer<BvhNode>, DeviceBuffer<usize>, DeviceBuffer<Triangle>) {
     let root_node_idx = 0;
     let mut nodes_used = 1;
-    let mut bvh_nodes: Vec<BVHNode> = Vec::with_capacity(tris.len() * 2 - 1);
+    let mut bvh_nodes: Vec<BvhNode> = Vec::with_capacity(tris.len() * 2 - 1);
     let mut tri_indices: Vec<usize> = (0..tris.len()).collect();
 
-    bvh_nodes.insert(root_node_idx, BVHNode::empty());
+    bvh_nodes.insert(root_node_idx, BvhNode::empty());
     let root = &mut bvh_nodes[root_node_idx];
     root.left_node = 0;
     root.first_tri_idx = 0;
@@ -137,7 +137,7 @@ pub fn build_bvh(stream: &Arc<CudaStream>, tris: &Vec<Triangle>) -> (DeviceBuffe
     (nodes_dev, tri_indices_dev, tris_dev)
 }
 
-fn update_node_bounds(node_idx: usize, bvh_nodes: &mut Vec<BVHNode>, tri_indices: &Vec<usize>, tris: &Vec<Triangle>) {
+fn update_node_bounds(node_idx: usize, bvh_nodes: &mut [BvhNode], tri_indices: &[usize], tris: &[Triangle]) {
     let node = &mut bvh_nodes[node_idx];
     node.aabb_min = Vec3::new(f64::MAX, f64::MAX, f64::MAX);
     node.aabb_max = Vec3::new(f64::MIN, f64::MIN, f64::MIN);
@@ -154,7 +154,7 @@ fn update_node_bounds(node_idx: usize, bvh_nodes: &mut Vec<BVHNode>, tri_indices
     }
 }
 
-fn subdivide(node_idx: usize, nodes_used: &mut usize, bvh_nodes: &mut Vec<BVHNode>, tris: &Vec<Triangle>, tri_indices: &mut Vec<usize>) {
+fn subdivide(node_idx: usize, nodes_used: &mut usize, bvh_nodes: &mut Vec<BvhNode>, tris: &Vec<Triangle>, tri_indices: &mut Vec<usize>) {
     if bvh_nodes[node_idx].tri_count <= 2 { return }
 
     let extent = bvh_nodes[node_idx].aabb_max - bvh_nodes[node_idx].aabb_min;
@@ -190,8 +190,8 @@ fn subdivide(node_idx: usize, nodes_used: &mut usize, bvh_nodes: &mut Vec<BVHNod
     let right_child_idx = *nodes_used;
     *nodes_used += 1;
 
-    bvh_nodes.insert(left_child_idx, BVHNode::empty());
-    bvh_nodes.insert(right_child_idx, BVHNode::empty());
+    bvh_nodes.insert(left_child_idx, BvhNode::empty());
+    bvh_nodes.insert(right_child_idx, BvhNode::empty());
 
     bvh_nodes[left_child_idx].first_tri_idx = bvh_nodes[node_idx].first_tri_idx;
     bvh_nodes[left_child_idx].tri_count = left_count;
@@ -253,7 +253,7 @@ fn fmaxf(v1: Vec3, v2: Vec3) -> Vec3 {
     rv
 }
 
-fn evaluate(nodes: &Vec<BVHNode>, tris: &Vec<Triangle>, in_depth: bool) {
+fn evaluate(nodes: &Vec<BvhNode>, tris: &[Triangle], in_depth: bool) {
     println!("\nBVH evaluation: ({})", if in_depth { "in depth evaluation" } else { "standard evaluation" });
     println!("Total nodes: {}", nodes.len());
 
@@ -274,5 +274,5 @@ fn evaluate(nodes: &Vec<BVHNode>, tris: &Vec<Triangle>, in_depth: bool) {
         }
         println!("Total leaves: {}", n_leaves);
     }
-    print!("\n");
+    println!();
 }

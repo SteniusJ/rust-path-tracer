@@ -23,19 +23,19 @@ impl Vec3 {
     pub fn sqrt_len(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
-    pub fn to_normalized(&self) -> Vec3 {
+    pub fn to_normalized(mut self) {
+        let k = 1.0 / self.len();
+        self *= k;
+    }
+    pub fn normalized(&self) -> Vec3 {
         let k = 1.0 / self.len();
         Vec3 {
             x: self.x * k,
             y: self.y * k,
-            z: self.z * k,
+            z: self.z * k
         }
     }
-    pub fn into_normalized(&mut self) {
-        let k = 1.0 / self.len();
-        *self *= k;
-    }
-    pub fn to_color(&self) -> Color {
+    pub fn to_color(self) -> Color {
         Color {
             r: (self.x * 255.99) as u8,
             g: (self.y * 255.99) as u8,
@@ -52,7 +52,7 @@ impl Vec3 {
             z: self.x * v.y - self.y * v.x
         }
     }
-    pub fn into_positive(&mut self) {
+    pub fn to_positive(mut self) {
         if self.x < 0.0 {
             self.x = -self.x;
         }

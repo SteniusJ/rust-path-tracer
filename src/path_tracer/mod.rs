@@ -33,18 +33,9 @@ pub mod kernels {
     #[kernel]
     pub fn render(
         tris: &[geometry::Triangle],
-        bvh_nodes: &[bvh::BVHNode],
+        bvh_nodes: &[bvh::BvhNode],
         tri_indices: &[usize],
-        camera: (
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            f64
-            ),
+        camera: camera::CameraFlattened,
         samples: u8,
         px_width: u16,
         px_height: u16,
@@ -59,7 +50,7 @@ pub mod kernels {
             let mut color = vec3::Vec3::empty();
             let mut seed = i as u32 + seed;
             let camera = camera::Camera::from_gpu_arg(camera);
-            let bvh = bvh::BVH::new(bvh_nodes, tri_indices, tris);
+            let bvh = bvh::Bvh::new(bvh_nodes, tri_indices, tris);
 
             let j = px_height as usize - (i / px_width as usize);
             let i = i - (i / px_width as usize * px_width as usize);
@@ -158,7 +149,7 @@ samples: {samples}\n",
     output.write_all(render_data.to_string().as_bytes()).unwrap();
 }
 
-fn get_color(ray: ray::Ray, bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
+fn get_color(ray: ray::Ray, bvh: &bvh::Bvh, max_depth: u8, seed: &mut u32) -> vec3::Vec3 {
     let mut depth = 0;
     let mut attentuation = vec3::Vec3::new(1.0, 1.0, 1.0);
     let mut ray = ray;
@@ -175,7 +166,7 @@ fn get_color(ray: ray::Ray, bvh: &bvh::BVH, max_depth: u8, seed: &mut u32) -> ve
 
         // Ray didn't hit anything, loop ends
         if !bvh.intersect(&ray, &mut hit_record) {
-            let unit_direction = ray.direction.to_normalized();
+            let unit_direction = ray.direction.normalized();
             let t = 0.5 * (unit_direction.y + 1.0);
             let color = (1.0 - t) * vec3::Vec3::new(1.0, 1.0, 1.0) + t * vec3::Vec3::new(0.5, 0.7, 1.0);
             return attentuation * color;

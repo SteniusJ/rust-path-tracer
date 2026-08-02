@@ -1,6 +1,17 @@
 use crate::path_tracer::{vec3, ray, util};
 use std::f64::consts::PI;
 
+pub type CameraFlattened = (
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    (f64, f64, f64),
+    f64
+    );
+
 #[derive(Clone, Copy)]
 pub struct Camera {
     pub origin: vec3::Vec3,
@@ -21,8 +32,8 @@ impl Camera {
         let theta = v_fov * PI / 180.0;
         let half_height = (theta / 2.0).tan();
         let half_width = aspect * half_height;
-        let w = (look_from - look_at).to_normalized();
-        let u = v_up.cross(&w).to_normalized();
+        let w = (look_from - look_at).normalized();
+        let u = v_up.cross(&w).normalized();
         let v = w.cross(&u);
 
         Camera {
@@ -30,9 +41,9 @@ impl Camera {
             lower_left_corner: look_from - half_width * focus_dist * u - half_height * focus_dist * v - focus_dist * w,
             horizontal: 2.0 * half_width * focus_dist * u,
             vertical: 2.0 * half_height * focus_dist * v,
-            u: u,
-            v: v,
-            w: w,
+            u,
+            v,
+            w,
             lens_radius: aperture / 2.0,
         }
     }
@@ -51,16 +62,7 @@ impl Camera {
      * fields as arguments in a kernel. Because of this the camera has to be converted into
      * this convoluted tuple.
      */
-    pub fn into_gpu_arg(self) -> (
-        (f64, f64, f64),
-        (f64, f64, f64),
-        (f64, f64, f64),
-        (f64, f64, f64),
-        (f64, f64, f64),
-        (f64, f64, f64),
-        (f64, f64, f64),
-        f64
-        ) {
+    pub fn into_gpu_arg(self) -> CameraFlattened {
         (
             (self.origin.x, self.origin.y, self.origin.z),
             (self.lower_left_corner.x, self.lower_left_corner.y, self.lower_left_corner.z),
@@ -75,18 +77,7 @@ impl Camera {
     /*
      * Converts tuple back to camera
      */
-    pub fn from_gpu_arg(
-        arg: (
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            (f64, f64, f64),
-            f64
-        )
-        ) -> Self {
+    pub fn from_gpu_arg(arg: CameraFlattened) -> Self {
         Self {
             origin: vec3::Vec3::new(arg.0.0, arg.0.1, arg.0.2),
             lower_left_corner: vec3::Vec3::new(arg.1.0, arg.1.1, arg.1.2),

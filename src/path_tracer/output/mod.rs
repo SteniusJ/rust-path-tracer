@@ -1,6 +1,10 @@
+#![allow(dead_code)]
+
 use crate::path_tracer::vec3;
 use std::io::prelude::*;
 use std::io;
+use std::fmt::Display;
+use std::fmt;
 
 pub struct RenderPPM {
     width: u16,
@@ -33,9 +37,55 @@ impl RenderPPM {
         }
     }
     /*
-     * Returns String containing complete ppm file.
+     * Median filtering for denoising of image.
      */
-    pub fn to_string(&self) -> String {
+    pub fn median_filter(&mut self, window_width: u8, progress_interval: i64) {
+        let mut progress = 0.0;
+        let edge = window_width as usize / 2;
+        // reshape 1 dimensional pixel data to 2 dimensional representation for easier filtering
+        let pixel_data: Vec<&[PixelData8]> = self.pixels.chunks(self.width as usize).collect();
+        let mut new_pixels: Vec<PixelData8> = Vec::with_capacity(self.pixels.len() - (2 * self.height as usize + 2 * self.width as usize));
+
+        for y in edge..self.height as usize - edge {
+            for x in edge..self.width as usize - edge {
+                let mut window: Vec<&PixelData8> = Vec::with_capacity(window_width as usize * window_width as usize);
+
+                for fy in 0..window_width as usize {
+                    for fx in 0..window_width as usize {
+                        window.push(&pixel_data[y + fy - edge][x + fx - edge]);
+                    }
+                }
+
+                // Get median of every color by sorting and taking the middle value
+                window.sort_by_key(|pxd_a| pxd_a.red);
+                let red = window[window.len() / 2].red;
+                window.sort_by_key(|pxd_a| pxd_a.green);
+                let green = window[window.len() / 2].green;
+                window.sort_by_key(|pxd_a| pxd_a.blue);
+                let blue = window[window.len() / 2].blue;
+
+                new_pixels.push(PixelData8::new(red, green, blue));
+            }
+
+            progress += 100.0 / (self.height - edge as u16 * 2) as f64;
+            if progress as i64 % progress_interval == 0 {
+                print!("\rdenoise progress: {progress:.2}%");
+                io::stdout().flush().unwrap();
+            }
+        }
+        self.pixels = new_pixels;
+        // Edge has to be removed from width and height since it isn't included in the new_pixels
+        // values
+        self.width -= edge as u16 * 2;
+        self.height -= edge as u16 * 2;
+    }
+}
+
+/*
+ * Returns String containing complete ppm file.
+ */
+impl Display for RenderPPM {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         /*
          * Creates output String with capacity for maximum possible length of String.
          * This size can only be reached if every pixel is a color where r,g and b are three
@@ -58,50 +108,7 @@ impl RenderPPM {
             output += &pixel_data.to_string_ppm();
         }
 
-        output
-    }
-    /*
-     * Median filtering for denoising of image.
-     */
-    pub fn median_filter(&mut self, window_width: u8, progress_interval: i64) {
-        let mut progress = 0.0;
-        let edge = window_width as usize / 2;
-        // reshape 1 dimensional pixel data to 2 dimensional representation for easier filtering
-        let pixel_data: Vec<&[PixelData8]> = self.pixels.chunks(self.width as usize).collect();
-        let mut new_pixels: Vec<PixelData8> = Vec::with_capacity(self.pixels.len() - (2 * self.height as usize + 2 * self.width as usize));
-
-        for y in edge..self.height as usize - edge {
-            for x in edge..self.width as usize - edge {
-                let mut window: Vec<&PixelData8> = Vec::with_capacity(window_width as usize * window_width as usize);
-
-                for fy in 0..window_width as usize {
-                    for fx in 0..window_width as usize {
-                        window.push(&pixel_data[y + fy - edge][x + fx - edge]);
-                    }
-                }
-
-                // Get median of every color by sorting and taking the middle value
-                window.sort_by(|pxd_a, pxd_b| pxd_a.red.cmp(&pxd_b.red));
-                let red = window[window.len() / 2].red;
-                window.sort_by(|pxd_a, pxd_b| pxd_a.green.cmp(&pxd_b.green));
-                let green = window[window.len() / 2].green;
-                window.sort_by(|pxd_a, pxd_b| pxd_a.blue.cmp(&pxd_b.blue));
-                let blue = window[window.len() / 2].blue;
-
-                new_pixels.push(PixelData8::new(red, green, blue));
-            }
-
-            progress += 100.0 / (self.height - edge as u16 * 2) as f64;
-            if progress as i64 % progress_interval == 0 {
-                print!("\rdenoise progress: {progress:.2}%");
-                io::stdout().flush().unwrap();
-            }
-        }
-        self.pixels = new_pixels;
-        // Edge has to be removed from width and height since it isn't included in the new_pixels
-        // values
-        self.width = self.width - edge as u16 * 2;
-        self.height = self.height - edge as u16 * 2;
+        write!(f, "{output}")
     }
 }
 

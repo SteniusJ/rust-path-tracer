@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use cuda_device::device;
 
 #[device]
@@ -7,7 +9,7 @@ pub fn xor_shift(seed: &mut u32) -> u32 {
     x ^= x >> 17;
     x ^= x << 5;
     *seed = x;
-    return x;
+    x
 }
 
 #[device]
@@ -20,18 +22,18 @@ pub fn randf(seed: &mut u32) -> f64 {
 #[device]
 pub fn min_f64(v1: f64, v2: f64) -> f64 {
     if v1 < v2 {
-        return v1;
+        v1
     } else {
-        return v2;
+        v2
     }
 }
 
 #[device]
 pub fn max_f64(v1: f64, v2: f64) -> f64 {
     if v1 > v2 {
-        return v1;
+        v1
     } else {
-        return v2;
+        v2
     }
 }
 
@@ -79,7 +81,7 @@ pub fn floor_f64(x: f64) -> f64 {
 macro_rules! midpoint {
     ( $( $x:expr ),* ) => {
         {
-            let mut sum = crate::path_tracer::vec3::Vec3::empty();
+            let mut sum = $crate::path_tracer::vec3::Vec3::empty();
             let mut count = 0_f64;
 
             $(
