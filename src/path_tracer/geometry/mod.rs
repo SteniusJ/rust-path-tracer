@@ -13,7 +13,7 @@ use std::f64::consts::GOLDEN_RATIO;
 
 use cuda_core::DeviceCopy;
 
-// "Pushes" object by move_vec
+/// "Pushes" object by move_vec
 pub fn move_by(world: &mut [Triangle], obj_ptr: &ObjPointer, move_vec: Vec3) {
     for i in 0..obj_ptr.len {
         let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
@@ -21,7 +21,7 @@ pub fn move_by(world: &mut [Triangle], obj_ptr: &ObjPointer, move_vec: Vec3) {
     }
 }
 
-// Moves object relative to its origin to target position (move_vec)
+/// Moves object relative to its origin to target position (move_vec)
 pub fn move_to(world: &mut [Triangle], obj_ptr: &ObjPointer, move_vec: Vec3) {
     for i in 0..obj_ptr.len {
         let tri = world.get_mut(obj_ptr.ptr + i).unwrap();
@@ -29,17 +29,16 @@ pub fn move_to(world: &mut [Triangle], obj_ptr: &ObjPointer, move_vec: Vec3) {
     }
 }
 
-/* Subdivides object "level" times
- *
- * This function only subdivides the mesh and does not smooth it
- *
- * WARNING!
- * Current implementation of the subdivide function includes a major bug related to the function of
- * the object pointers. Since the subdivide function drains the mesh from the world vector it shifts
- * all objects that come after it in the vector causing their pointers to become incorrect.
- * I won't bother fixing this bug since it requires a rewrite of how objects and their pointers are
- * handled.
- */
+/// Subdivides object "level" times
+///
+/// This function only subdivides the mesh and does not smooth it
+///
+/// WARNING!
+/// Current implementation of the subdivide function includes a major bug related to the function of
+/// the object pointers. Since the subdivide function drains the mesh from the world vector it shifts
+/// all objects that come after it in the vector causing their pointers to become incorrect.
+/// I won't bother fixing this bug since it requires a rewrite of how objects and their pointers are
+/// handled.
 pub fn subdivide(world: &mut Vec<Triangle>, obj_ptr: &mut ObjPointer, level: u8) {
     let obj_start = world.len() - obj_ptr.len;
     let obj_slice: Vec<Triangle> = world.drain(obj_ptr.ptr..obj_ptr.ptr + obj_ptr.len).collect();
@@ -74,21 +73,19 @@ pub struct Triangle {
 unsafe impl DeviceCopy for Triangle {}
 
 impl Triangle {
-    /*
-     * Constructs a Triangle
-     *
-     * For a Triangle that has a normal pointing outward (towards the observer (you))
-     * the vertices should be placed as follows
-     *  
-     *        2
-     *       / \
-     *      /   \
-     *     /     \
-     *    /       \
-     *   /         \
-     * 1/___________\3
-     *
-     */
+    /// Constructs a Triangle
+    ///
+    /// For a Triangle that has a normal pointing outward (towards the observer (you))
+    /// the vertices should be placed as follows
+    /// 
+    ///        2
+    ///       / \
+    ///      /   \
+    ///     /     \
+    ///    /       \
+    ///   /         \
+    /// 1/___________\3
+    ///
     pub fn new(v1: Vec3, v2: Vec3, v3: Vec3, material: materials::Material) -> Triangle {
         Triangle {
             vertice1: v1,
@@ -170,24 +167,23 @@ impl Triangle {
         self.vertice2 = self.origin + (self.vertice2 - original_origin);
         self.vertice3 = self.origin + (self.vertice3 - original_origin);
     }
-    /* Subdivides triangle into two "level" times
-     * 
-     * Example of a singular subdivision:
-     *
-     *        2
-     *       /|\
-     *      / | \
-     *     /  |  \
-     *    /   |   \
-     *   /    |    \
-     * 1/_____m_____\3
-     *
-     * 1 2 3 represent the original vertices
-     * m is the new "midpoint" vertex
-     * the new triangles are formed from [1 2 m] and [m 2 3] respectively
-     *
-     * this method consumes the original triangle
-     */
+    /// Subdivides triangle into two "level" times
+    /// 
+    /// Example of a singular subdivision:
+    ///
+    ///        2
+    ///       /|\
+    ///      / | \
+    ///     /  |  \
+    ///    /   |   \
+    ///   /    |    \
+    /// 1/_____m_____\3
+    ///
+    /// 1 2 3 represent the original vertices
+    /// m is the new "midpoint" vertex
+    /// the new triangles are formed from [1 2 m] and [m 2 3] respectively
+    ///
+    /// this method consumes the original triangle
     pub fn subdivide(self, level: u8) -> Vec<Triangle> {
         let mut subdivided = vec![self];
 
@@ -231,18 +227,16 @@ pub struct Plane {
 }
 
 impl Plane {
-    /*
-     * Constructs new Plane
-     * Returns vector of Triangle
-     *
-     * Placement of vertices. Normal faces observer
-     *
-     * 3--------4
-     * |        |
-     * |        |
-     * |        |
-     * 1--------2
-     */
+    /// Constructs new Plane
+    /// Returns vector of Triangle
+    ///
+    /// Placement of vertices. Normal faces observer
+    ///
+    /// 3--------4
+    /// |        |
+    /// |        |
+    /// |        |
+    /// 1--------2
     pub fn new(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, material: materials::Material) -> Plane {
         let origin = midpoint!(v1, v2, v3, v4);
         let triangles = vec![
@@ -284,21 +278,18 @@ pub struct Cuboid {
 }
 
 impl Cuboid {
-    /* 
-     * Constructs new Cuboid
-     * Returns vector of Triangle
-     *
-     * Placement order of vertices. Face 1,2,3,4 is closer to the observer
-     *
-     *    7________8
-     *   /|       /|
-     * 3/_______4/ |
-     * |  |     |  |
-     * |  5_____|__6
-     * | /      | /
-     * 1/_______2/
-     *
-     */
+    /// Constructs new Cuboid
+    /// Returns vector of Triangle
+    ///
+    /// Placement order of vertices. Face 1,2,3,4 is closer to the observer
+    ///
+    ///    7________8
+    ///   /|       /|
+    /// 3/_______4/ |
+    /// |  |     |  |
+    /// |  5_____|__6
+    /// | /      | /
+    /// 1/_______2/
     pub fn new(v1: Vec3, v2: Vec3, v3: Vec3, v4: Vec3, v5: Vec3, v6: Vec3, v7: Vec3, v8: Vec3, material: materials::Material) -> Cuboid {
         let origin = midpoint!(v1, v2, v3, v4, v5, v6, v7, v8);
         let mut triangles: Vec<Triangle> = Vec::with_capacity(12);
@@ -345,17 +336,28 @@ pub struct Sphere {
     pub triangles: Vec<Triangle>,
 }
 
+
 impl Sphere {
+    /// Constructs new icosphere
+    ///
+    /// Cool ascii art of a icosphere since all other geometry has one :).
+    ///          ___*___
+    ///       __/   |   \__
+    ///   ___/      |      \___
+    ///  /          |          \
+    /// *-----------*-----------*
+    /// |\         / \         /|
+    /// | |       |   |       | |
+    /// |   |   |       |   |   |
+    /// |    \ /         \ /    |
+    /// *-----*-----------*-----*
+    ///  \__   \_       _/   __/
+    ///     \__  \_   _/  __/
+    ///        \__ \ / __/
+    ///           \_*_/ 
     pub fn new(origin: Vec3, radius: f64, subdivisions: u8, material: materials::Material) -> Sphere {
         /* Desmos 3D proof:
          * https://www.desmos.com/3d/cvponkyov9
-         *
-         * NOTE:
-         * Sphere currently feels slightly squished, some maths probably don't line up with the
-         * expected. Desmos is ground truth use that as reference for the fix.
-         *
-         * Seems like the sphere isn't oval, at least the areas are the same on all the triangles
-         * and the math doesn't veer from the "ground truth". Probably just perspective distortions.
          *
          * NOTE:
          * Sphere subdivisions cause gaps to appear between triangles, these are apparent up to
@@ -629,11 +631,9 @@ pub struct ObjImport {
     pub triangles: Vec<Triangle>,
 }
 
-impl ObjImport {
-    /* 
-     * Constructs new Custom model from .obj wavefront file.
-     * Doesn't auto triangulate, requires mesh to be pre triangulated.
-     */
+impl ObjImport { 
+    /// Constructs new Custom model from .obj wavefront file.
+    /// Doesn't auto triangulate, requires mesh to be pre triangulated.
     pub fn new(file_name: &str, material: materials::Material) -> ObjImport {
         let mut triangles: Vec<Triangle> = Vec::new();
         let mut import_file = File::open(file_name).unwrap();

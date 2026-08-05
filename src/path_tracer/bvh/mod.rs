@@ -11,9 +11,7 @@ use cuda_core::{ DeviceBuffer, CudaStream, DeviceCopy };
 
 use std::sync::Arc;
 
-/* Maximum stack size.
- * 100 should be overkill for any reasonable scene.
- */
+// Maximum virtual stack size.
 static STACK_SIZE: usize = 20;
 
 #[derive(Clone, Copy)]

@@ -195,7 +195,7 @@ fn dielectric_scatter(refraction_index: f64, r_in: &ray::Ray, rec: &hitable::Hit
 /*
  * Normal material.
  * Debug material for visualization of surface normals.
- * Also visualises triangle borders.
+ * Also visualises triangle borders (this is somewhat scuffed).
  */
 fn normal_scatter(rec: &hitable::HitRecord, attentuation: &mut vec3::Vec3, border_color: vec3::Vec3, border_treshold: f64) -> bool {
     let normal_color = rec.surface_normal.normalized();
