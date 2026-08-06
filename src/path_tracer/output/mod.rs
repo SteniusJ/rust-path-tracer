@@ -31,9 +31,26 @@ impl RenderPPM {
     /*
      * Push gpu generated vector
      */
-    pub fn push_gpu_vec(&mut self, pixels: Vec<(u8, u8, u8)>) {
-        for (r, g, b) in pixels {
-            self.pixels.push(PixelData8::new(r, g, b));
+    pub fn push_gpu_vec(&mut self, pixels: Vec<(f64, f64, f64)>, samples: u8) {
+        let n_pixels = pixels.len() / samples as usize;
+        for i in 0..n_pixels {
+            let mut color = vec3::Vec3::empty();
+
+            // For each sample displace the position by n_pixels * sample to get the other samples
+            for sample in 0..samples as usize {
+                let pixel_data = pixels[i + n_pixels * sample];
+                color += vec3::Vec3::new(pixel_data.0, pixel_data.1, pixel_data.2);
+            }
+
+            // Color normalization
+            color /= samples as f64;
+            color = vec3::Vec3::new(
+                f64::sqrt(color.x),
+                f64::sqrt(color.y),
+                f64::sqrt(color.z)
+                );
+            let color = color.to_color();
+            self.pixels.push(PixelData8::new(color.r, color.g, color.b));
         }
     }
     /*

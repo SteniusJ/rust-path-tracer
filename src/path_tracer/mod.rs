@@ -20,14 +20,13 @@ use std::sync::Arc;
 pub mod kernels {
     use super::{
         camera,
-        vec3,
         util,
         geometry,
         bvh,
         kernel,
         thread,
         DisjointSlice,
-        get_color
+        get_color,
     };
 
     #[kernel]
@@ -36,40 +35,33 @@ pub mod kernels {
         bvh_nodes: &[bvh::BvhNode],
         tri_indices: &[usize],
         camera: camera::CameraFlattened,
-        samples: u8,
         px_width: u16,
         px_height: u16,
         depth: u8,
         seed: u32,
-        mut out: DisjointSlice<(u8, u8, u8)>
+        mut out: DisjointSlice<(f64, f64, f64)>
         ) {
         let idx = thread::index_1d();
-        let i = idx.get();
+        let index = idx.get();
 
         if let Some(out_elem) = out.get_mut(idx) {
-            let mut color = vec3::Vec3::empty();
-            let mut seed = i as u32 + seed;
+            let mut seed = index as u32 + seed;
             let camera = camera::Camera::from_gpu_arg(camera);
             let bvh = bvh::Bvh::new(bvh_nodes, tri_indices, tris);
 
-            let j = px_height as usize - (i / px_width as usize);
-            let i = i - (i / px_width as usize * px_width as usize);
+            let n_pixels = px_width as usize * px_height as usize;
+            let modif = index / n_pixels;
+            let index = index - n_pixels * modif;
 
-            for _ in 0..samples {
-                let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
-                let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
-                let ray = camera.get_ray(u, v, &mut seed);
-                color += get_color(ray, /*tris*/&bvh, depth, &mut seed);
-            }
+            let j = px_height as usize - (index / px_width as usize);
+            let i = index % px_width as usize;
 
-            color /= samples as f64;
-            color = vec3::Vec3::new(
-                util::sqrt_f64(color.x),
-                util::sqrt_f64(color.y),
-                util::sqrt_f64(color.z)
-                );
-            let color = color.to_color();
-            *out_elem = (color.r, color.g, color.b);
+            let u = (i as f64 + util::randf(&mut seed)) / px_width as f64;
+            let v = (j as f64 + util::randf(&mut seed)) / px_height as f64;
+            let ray = camera.get_ray(u, v, &mut seed);
+            let color = get_color(ray, &bvh, depth, &mut seed);
+
+            *out_elem = (color.x, color.y, color.z);
         }
     }
 }
@@ -93,7 +85,7 @@ pub fn render(
     let px_width = px_width + (denoising as u16).div_ceil(2);
     let px_height = px_height + (denoising as u16).div_ceil(2);
     let mut render_data = output::RenderPPM::new(px_width, px_height, 255);
-    let npixels = px_width as u32 * px_height as u32;
+    let npixels = px_width as u32 * px_height as u32 * samples as u32;
 
     let (
         bvh_nodes_dev,
@@ -101,7 +93,7 @@ pub fn render(
         tris_dev
     ) = bvh::build_bvh(&stream, &world);
 
-    let mut out_dev = DeviceBuffer::<(u8, u8, u8)>::zeroed(&stream, npixels as usize).unwrap();
+    let mut out_dev = DeviceBuffer::<(f64, f64, f64)>::zeroed(&stream, npixels as usize).unwrap();
 
     {
         let denoising = (denoising as u16).div_ceil(2);
@@ -127,7 +119,6 @@ samples: {samples}\n",
                 &bvh_nodes_dev,
                 &tri_indices_dev,
                 camera.into_gpu_arg(),
-                samples,
                 px_width,
                 px_height,
                 depth,
@@ -139,7 +130,7 @@ samples: {samples}\n",
 
     let out = out_dev.to_host_vec(&stream).unwrap();
 
-    render_data.push_gpu_vec(out);
+    render_data.push_gpu_vec(out, samples);
 
     if denoising > 2 {
         println!("starting denoising...");
