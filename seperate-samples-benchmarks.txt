@@ -1,0 +1,10 @@
+Running over the samples in a for inside the kernel seems to be significantly faster,
+the amount of samples only seems to widen the difference between the two.
+My implementation could also be faulty. I already know that the seperate-samples version spends more time
+initializing the needed resources that can just be reused on the combined version.
+
+seperate samples (10s): 16.68s user 0.44s system 99% cpu 17.207 total
+seperate samples (50s): 83.14s user 1.17s system 99% cpu 1:24.52 total
+
+combined samples (10s): 15.76s user 0.29s system 99% cpu 16.179 total
+combined samples (50s): 75.57s user 0.31s system 99% cpu 1:16.40 total
