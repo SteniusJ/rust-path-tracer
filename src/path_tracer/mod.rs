@@ -9,7 +9,7 @@ pub mod output;
 pub mod bvh;
 
 use cuda_device::{kernel, thread, DisjointSlice};
-use cuda_core::{DeviceBuffer, LaunchConfig, CudaStream};
+use cuda_core::{DeviceBuffer, CudaStream, simt::LaunchConfig};
 use cuda_host::cuda_module;
 
 use std::fs::File;

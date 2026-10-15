@@ -2,12 +2,7 @@ use cuda_core::CudaContext;
 
 mod path_tracer;
 
-use path_tracer::{
-    camera::Camera,
-    vec3::Vec3,
-    materials::Material,
-    geometry
-};
+use path_tracer::{camera::Camera, geometry, materials::Material, vec3::Vec3};
 
 fn main() {
     let px_width = 1920;
@@ -24,8 +19,16 @@ fn main() {
     let aperature = 0.02;
     let dist_to_focus = (look_from - look_at).len();
     let aspect = px_width as f64 / px_height as f64;
-    
-    let camera = Camera::new(look_from, look_at, v_up, fov, aspect, aperature, dist_to_focus);
+
+    let camera = Camera::new(
+        look_from,
+        look_at,
+        v_up,
+        fov,
+        aspect,
+        aperature,
+        dist_to_focus,
+    );
 
     let cuboid_mat = Material::new_lambertian(Vec3::new(0.5, 0.2, 0.2));
     let glass = Material::new_dielectric(1.5);
@@ -36,7 +39,7 @@ fn main() {
 
     let cuboid = geometry::Cuboid::new_to_world(
         Vec3::new(1.0, 0.0, 0.0),
-        Vec3::new(-1.0, 0.0, 0.0), 
+        Vec3::new(-1.0, 0.0, 0.0),
         Vec3::new(1.0, 2.0, 0.0),
         Vec3::new(-1.0, 2.0, 0.0),
         Vec3::new(1.0, 0.0, -2.0),
@@ -44,8 +47,8 @@ fn main() {
         Vec3::new(1.0, 2.0, -2.0),
         Vec3::new(-1.0, 2.0, -2.0),
         cuboid_mat,
-        &mut world
-        );
+        &mut world,
+    );
 
     geometry::move_to(&mut world, &cuboid, Vec3::new(-3.0, 2.0, -3.0));
 
@@ -55,23 +58,19 @@ fn main() {
         Vec3::new(-200.0, 0.0, 200.0),
         Vec3::new(200.0, 0.0, 200.0),
         metallic,
-        &mut world
-        );
+        &mut world,
+    );
 
     geometry::subdivide(&mut world, &mut floor, 6);
 
-    let _custom_obj = geometry::ObjImport::new_to_world(
-        "suzanne.obj",
-        glass,
-        &mut world
-        );
+    let _custom_obj = geometry::ObjImport::new_to_world("suzanne.obj", glass, &mut world);
 
     let mut triangle = geometry::Triangle::new(
-                Vec3::new(0.0, 1.0, 4.0),
-                Vec3::new(0.0, 1.0, 2.0),
-                Vec3::new(0.0, 3.0, 3.0),
-                tri_mat
-                );
+        Vec3::new(0.0, 1.0, 4.0),
+        Vec3::new(0.0, 1.0, 2.0),
+        Vec3::new(0.0, 3.0, 3.0),
+        tri_mat,
+    );
     triangle.move_to(Vec3::new(-2.0, 2.0, 3.0));
     world.push(triangle);
 
@@ -90,6 +89,6 @@ fn main() {
         "output.ppm",
         denoising,
         module,
-        stream
-        );
+        stream,
+    );
 }
